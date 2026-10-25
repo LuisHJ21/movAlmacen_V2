@@ -5,6 +5,10 @@ import { useAuth } from '@/hooks/useAuth'
 import LoginPage from '@/pages/LoginPage'
 import HomePage from '@/pages/HomePage'
 import ComingSoonPage from '@/pages/ComingSoonPage'
+import GenerarValePage from '@/pages/GenerarValePage'
+
+/** Rutas del menú que ya tienen página propia */
+const builtPaths = ['/generar-vale']
 
 /** Solo usuarios autenticados; si no, redirige al login recordando la ruta */
 function ProtectedRoute() {
@@ -14,10 +18,12 @@ function ProtectedRoute() {
   return <Outlet />
 }
 
-/** Solo usuarios sin sesión (ej. login) */
+/** Solo usuarios sin sesión (ej. login). Al iniciar sesión vuelve a la ruta que se intentó abrir. */
 function PublicRoute() {
   const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  return isAuthenticated ? <Navigate to={from} replace /> : <Outlet />
 }
 
 export default function App() {
@@ -31,10 +37,13 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
-            {/* Reemplazar por cada página conforme se construya */}
-            {menuOptions.map(({ path }) => (
-              <Route key={path} path={path} element={<ComingSoonPage />} />
-            ))}
+            <Route path="/generar-vale" element={<GenerarValePage />} />
+            {/* Opciones aún sin página */}
+            {menuOptions
+              .filter(({ path }) => !builtPaths.includes(path))
+              .map(({ path }) => (
+                <Route key={path} path={path} element={<ComingSoonPage />} />
+              ))}
           </Route>
         </Route>
 

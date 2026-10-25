@@ -46,7 +46,10 @@
   --color-ring: #c2410c;
 
   /* Tacto: 48dp (Android / PDA) */
-  --spacing-touch: 3rem;
+  --spacing-touch: 48px; /* en px: no se reduce con la escala móvil */
+
+  /* Etiquetas pequeñas: nunca por debajo de 12px (legibilidad) */
+  --text-xs: max(0.75rem, 12px);
 }
 
 @layer base {
@@ -54,6 +57,28 @@
   body,
   #root {
     height: 100%;
+  }
+
+  html {
+    /* Evita que el navegador móvil agrande el texto por su cuenta (font boosting) */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Celular / PDA: escala base 12.5px (en PC se mantiene 16px). Todo en rem se ajusta en proporción */
+  @media (max-width: 639px) {
+    html {
+      font-size: 78.125%;
+    }
+  }
+
+  /* iOS hace zoom al enfocar campos con letra menor a 16px */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1rem);
+    }
   }
 
   body {
