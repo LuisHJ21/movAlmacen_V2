@@ -1,0 +1,90 @@
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+@import '@fontsource/open-sans/latin-400.css';
+@import '@fontsource/open-sans/latin-500.css';
+@import '@fontsource/open-sans/latin-600.css';
+@import 'tailwindcss';
+
+/*
+ * Sistema de diseño · Minimalism & Swiss Style
+ * Paleta naranja de marca (referencia visual de MovAlmacén)
+ * Fuentes locales (@fontsource) para que la PDA funcione sin internet.
+ */
+@theme {
+  --font-sans: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Poppins', 'Open Sans', ui-sans-serif, sans-serif;
+
+  /* Tokens semánticos: usar estos en los componentes, no hex sueltos */
+  /* Naranja de acción: #c2410c con texto blanco = 5.2:1 (AA) */
+  --color-primary: #c2410c;
+  --color-primary-hover: #9a3412;
+  --color-primary-soft: #fff7ed;
+  --color-primary-border: #fed7aa;
+  --color-on-primary: #ffffff;
+
+  /* Naranja del logo (solo decorativo, no para texto) */
+  --color-brand: #f97316;
+
+  --color-background: #f4f4f5;
+  --color-foreground: #1c1917;
+  --color-card: #ffffff;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #57534e;
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
+
+  --color-success: #047857;
+  --color-success-soft: #ecfdf5;
+
+  /* Rojo con texto blanco: #b91c1c = 6.5:1 (AA) */
+  --color-destructive: #b91c1c;
+  --color-destructive-hover: #991b1b;
+  --color-destructive-soft: #fef2f2;
+  --color-on-destructive: #ffffff;
+
+  --color-ring: #c2410c;
+
+  /* Tacto: 48dp (Android / PDA) */
+  --spacing-touch: 3rem;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background font-sans text-base leading-normal text-foreground antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight text-foreground;
+  }
+
+  /* Foco visible: 2px sólido con separación */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
