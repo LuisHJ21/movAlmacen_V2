@@ -11,7 +11,7 @@ export function useReferences({ articleCode, movementCode, docNumber = '' }: Ref
     async () => {
       try {
         const references = await almacenService.getReferences({ articleCode, movementCode, docNumber })
-        return references.filter((r) => r.remaining === null || r.remaining > 0)
+        return references.filter((r) => r.restante === null || r.restante > 0)
       } catch (err) {
         if (isAxiosError(err) && err.response?.status === 404) return []
         throw err

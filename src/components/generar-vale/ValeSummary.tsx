@@ -3,7 +3,7 @@ import type { Matrix, Warehouse } from '@/interfaces/almacen.interface'
 import type { Movement } from '@/interfaces/movimiento.interface'
 import type { Article } from '@/interfaces/pallet.interface'
 import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
-import { formatWeight } from '@/utils/format'
+import { formatCount, formatWeight } from '@/utils/format'
 import { valeTotals } from '@/utils/vale'
 import { ValeHeader } from './ValeHeader'
 import { ValePalletSection } from './ValePalletSection'
@@ -16,7 +16,7 @@ interface ValeSummaryProps {
   warehouse: Warehouse | null
   matrix: Matrix | null
   groups: ValePalletGroup[]
-  onLineChange: (palletCode: string, index: number, changes: Partial<Pick<ValeLine, 'packages' | 'extraKg'>>) => void
+  onLineChange: (palletCode: string, index: number, changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
   onRemovePallet?: (palletCode: string) => void
   /** Salidas: quitar un ítem / volver a agregar ítems excluidos de un pallet */
   onRemoveLine?: (palletCode: string, item: string) => void
@@ -38,8 +38,8 @@ export function ValeSummary({
   onAddItems,
 }: ValeSummaryProps) {
   // Solo las salidas permiten ajustar bultos y kg adicionales
-  const editable = movement.kind === 'SAL'
-  const total = valeTotals(groups.flatMap((g) => g.lines))
+  const editable = movement.tipo === 'SAL'
+  const total = valeTotals(groups.flatMap((g) => g.lineas))
 
   return (
     <div className="space-y-4">
@@ -47,16 +47,16 @@ export function ValeSummary({
 
       {groups.map((group, index) => (
         <ValePalletSection
-          key={group.pallet.code}
+          key={group.pallet.codigo}
           group={group}
           matrix={matrix}
           editable={editable}
           isInitial={index === 0}
-          onLineChange={(lineIndex, changes) => onLineChange(group.pallet.code, lineIndex, changes)}
-          onRemoveLine={onRemoveLine ? (item) => onRemoveLine(group.pallet.code, item) : undefined}
-          onAddItems={onAddItems ? () => onAddItems(group.pallet.code) : undefined}
+          onLineChange={(lineIndex, changes) => onLineChange(group.pallet.codigo, lineIndex, changes)}
+          onRemoveLine={onRemoveLine ? (item) => onRemoveLine(group.pallet.codigo, item) : undefined}
+          onAddItems={onAddItems ? () => onAddItems(group.pallet.codigo) : undefined}
           // El pallet inicial define artículo y movimiento: no se quita
-          onRemove={index > 0 && onRemovePallet ? () => onRemovePallet(group.pallet.code) : undefined}
+          onRemove={index > 0 && onRemovePallet ? () => onRemovePallet(group.pallet.codigo) : undefined}
         />
       ))}
 
@@ -65,7 +65,7 @@ export function ValeSummary({
           <Sigma aria-hidden className="size-5 shrink-0" />
           <span className="font-semibold">Total vale · {groups.length} pallets</span>
           <span className="ml-auto font-mono font-bold whitespace-nowrap">
-            {total.packages} bultos · {formatWeight(total.weight)}
+            {formatCount(total.packages)} bultos · {formatWeight(total.weight)}
           </span>
         </div>
       )}

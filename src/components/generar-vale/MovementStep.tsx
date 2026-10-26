@@ -1,5 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
+import { Alert } from '@/components/ui/Alert'
 import { OptionList, type OptionItem } from '@/components/ui/OptionList'
 import { SegmentedControl, type SegmentOption } from '@/components/ui/SegmentedControl'
 import { useMovements } from '@/hooks/useMovements'
@@ -8,7 +9,6 @@ import type { Pallet } from '@/interfaces/pallet.interface'
 import { toSentenceCase } from '@/utils/format'
 import { getAllowedMovementKind } from '@/utils/validations'
 import { PalletChip } from './PalletChip'
-import { StepFooter } from './StepFooter'
 
 const kindOptions: SegmentOption<MovementKind>[] = [
   { value: 'ING', label: 'Ingreso', Icon: ArrowDownToLine },
@@ -25,11 +25,12 @@ interface MovementStepProps {
   articleCode: string
   /** Selección previa (al regresar desde el paso siguiente) */
   initialMovement?: Movement | null
+  /** Se llama al tocar un movimiento: consulta matriz y datos, y avanza */
   onConfirm: (movement: Movement) => void
   /** Mientras se consultan la matriz y los datos del pallet */
   isSubmitting?: boolean
   submitError?: string
-  onSelectionChange?: () => void
+  onDismissError?: () => void
 }
 
 export function MovementStep({
@@ -39,28 +40,28 @@ export function MovementStep({
   onConfirm,
   isSubmitting = false,
   submitError,
-  onSelectionChange,
+  onDismissError,
 }: MovementStepProps) {
   const { movements, isLoading, error, reload } = useMovements()
   // El tipo lo define el estado del pallet; el otro queda bloqueado
   const kind = getAllowedMovementKind(pallet)
-  const [selectedCode, setSelectedCode] = useState<string | null>(
-    initialMovement?.kind === kind ? initialMovement.code : null,
-  )
+  // Movimiento tocado: muestra el indicador de carga mientras se consulta
+  const [pendingCode, setPendingCode] = useState<string | null>(null)
 
-  const available = useMemo(() => movements.filter((m) => m.kind === kind), [movements, kind])
-  const items: OptionItem[] = available.map((m) => ({ key: m.code, badge: m.code, title: toSentenceCase(m.name) }))
-  const selected = available.find((m) => m.code === selectedCode) ?? null
+  const available = useMemo(() => movements.filter((m) => m.tipo === kind), [movements, kind])
+  const items: OptionItem[] = available.map((m) => ({ key: m.codigo, badge: m.codigo, title: toSentenceCase(m.nombre) }))
 
   const kindSegments = kindOptions.map((option) => ({ ...option, disabled: option.value !== kind }))
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (selected && !isSubmitting) onConfirm(selected)
+  const handleSelect = (code: string) => {
+    const movement = available.find((m) => m.codigo === code)
+    if (!movement || isSubmitting) return
+    setPendingCode(code)
+    onConfirm(movement)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-4 px-4 pt-4">
         <PalletChip pallet={pallet} articleCode={articleCode} />
         <SegmentedControl
@@ -70,31 +71,29 @@ export function MovementStep({
           onChange={() => {}}
           hint={kindHints[kind]}
         />
+        {/* Error al consultar el movimiento tocado (ej. sin matriz) */}
+        {submitError && !isSubmitting && (
+          <Alert type="error" onClose={onDismissError}>
+            {submitError}
+          </Alert>
+        )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4">
         <OptionList
           legend={`Movimiento de ${kind === 'ING' ? 'ingreso' : 'salida'}`}
           name="movement"
           items={items}
-          selectedKey={selectedCode}
-          onSelect={(code) => {
-            setSelectedCode(code)
-            onSelectionChange?.()
-          }}
+          selectedKey={initialMovement?.tipo === kind ? initialMovement.codigo : null}
+          onSelect={handleSelect}
+          pendingKey={isSubmitting ? pendingCode : null}
+          disabled={isSubmitting}
           isLoading={isLoading}
           error={error}
           onRetry={() => void reload()}
           searchPlaceholder="Buscar por nombre o código"
         />
       </div>
-
-      <StepFooter
-        disabled={!selected}
-        isLoading={isSubmitting}
-        loadingLabel="Consultando matriz…"
-        error={submitError}
-      />
-    </form>
+    </div>
   )
 }

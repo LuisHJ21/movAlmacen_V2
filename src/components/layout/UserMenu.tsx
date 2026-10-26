@@ -4,7 +4,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { useAuth } from '@/hooks/useAuth'
 
 export function UserMenu() {
-  const { user, logout } = useAuth()
+  const { usuario: user, cerrarSesion: logout } = useAuth()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -43,10 +43,10 @@ export function UserMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls="user-menu"
-        aria-label={`Menú de usuario: ${user.fullName}`}
+        aria-label={`Menú de usuario: ${user.nombre}`}
         className="grid size-touch place-items-center rounded-full transition-opacity duration-150 active:opacity-80"
       >
-        <Avatar name={user.fullName} />
+        <Avatar name={user.nombre} />
       </button>
 
       {open && (
@@ -57,11 +57,11 @@ export function UserMenu() {
           className="absolute top-full right-0 z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-stone-900/10"
         >
           <div className="flex flex-col items-center gap-3 px-5 pt-6 pb-5 text-center">
-            <Avatar name={user.fullName} size="lg" />
+            <Avatar name={user.nombre} size="lg" />
             <div className="min-w-0">
-              <p className="truncate font-heading text-lg font-semibold text-foreground">{user.fullName}</p>
+              <p className="truncate font-heading text-lg font-semibold text-foreground">{user.nombre}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {user.username} · {user.profile}
+                {user.usuario} · {user.perfil}
               </p>
             </div>
           </div>

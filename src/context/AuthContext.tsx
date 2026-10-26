@@ -1,6 +1,8 @@
-import { createContext, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { axiosClient } from '@/api/axiosClient'
 import type { AuthContextValue, LoginCredentials, User } from '@/interfaces/auth.interface'
 import { authService } from '@/services/auth.service'
+import { renewSessionIfNeeded } from '@/services/session.service'
 import { storageService } from '@/services/storage.service'
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -15,13 +17,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const result = await authService.login(credentials)
-      storageService.saveSession(result, credentials.remember)
+      storageService.saveSession(result, credentials.recordar)
       setToken(result.token)
-      setUser(result.user)
+      setUser(result.usuario)
     } finally {
       setIsLoading(false)
     }
   }, [])
+
+  // Cada respuesta de la API cuenta como actividad: renueva el token si está por vencer
+  useEffect(() => {
+    if (!token) return
+    const interceptor = axiosClient.interceptors.response.use((response) => {
+      if (!/\/(login|refresh)$/.test(response.config.url ?? '')) {
+        renewSessionIfNeeded((result) => {
+          setToken(result.token)
+          setUser(result.usuario)
+        })
+      }
+      return response
+    })
+    return () => axiosClient.interceptors.response.eject(interceptor)
+  }, [token])
 
   const logout = useCallback(() => {
     storageService.clearSession()
@@ -30,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, isAuthenticated: !!token && !!user, isLoading, login, logout }),
+    () => ({ usuario: user, token, autenticado: !!token && !!user, cargando: isLoading, iniciarSesion: login, cerrarSesion: logout }),
     [user, token, isLoading, login, logout],
   )
 

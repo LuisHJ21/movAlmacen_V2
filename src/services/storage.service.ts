@@ -1,7 +1,8 @@
 import type { LoginResult, User } from '@/interfaces/auth.interface'
 
 const TOKEN_KEY = 'movalmacen.token'
-const USER_KEY = 'movalmacen.user'
+// v2: el usuario se guarda con propiedades en español; las sesiones con el formato anterior piden login otra vez
+const USER_KEY = 'movalmacen.usuario'
 const EXPIRES_KEY = 'movalmacen.expiresAt'
 
 /**
@@ -41,7 +42,24 @@ export const storageService = {
     }
   },
 
-  saveSession({ token, user, expiresAt }: LoginResult, remember: boolean): void {
+  /** Vencimiento del token en ms (epoch); null si no hay sesión */
+  getExpiresAt(): number | null {
+    return Number(read(EXPIRES_KEY)) || null
+  },
+
+  /** Reemplaza token, usuario y vencimiento tras renovar, en el mismo almacenamiento ("Recordarme") */
+  updateSession({ token, usuario: user, expiraEn: expiresAt }: LoginResult): void {
+    try {
+      const storage = localStorage.getItem(TOKEN_KEY) !== null ? localStorage : sessionStorage
+      storage.setItem(TOKEN_KEY, token)
+      storage.setItem(USER_KEY, JSON.stringify(user))
+      storage.setItem(EXPIRES_KEY, String(expiresAt))
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  },
+
+  saveSession({ token, usuario: user, expiraEn: expiresAt }: LoginResult, remember: boolean): void {
     this.clearSession()
     const storage = remember ? localStorage : sessionStorage
     try {

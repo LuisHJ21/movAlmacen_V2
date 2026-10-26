@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Check, ListChecks, Package } from 'lucide-react'
 import type { ValeLine } from '@/interfaces/vale.interface'
-import { formatQuantity, formatWeight } from '@/utils/format'
+import { formatCount, formatQuantity, formatWeight } from '@/utils/format'
 import { lineWeight } from '@/utils/vale'
 import { StepFooter } from './StepFooter'
 
@@ -91,13 +91,13 @@ export function ItemPickerStep({
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline gap-2">
                       <span className="font-heading font-bold">#{line.item}</span>
-                      <span className="text-sm text-muted-foreground">Lote {line.lot || '—'}</span>
+                      <span className="text-sm text-muted-foreground">Lote {line.lote || '—'}</span>
                       <span className="ml-auto font-heading font-bold whitespace-nowrap">
                         {formatWeight(lineWeight(line))}
                       </span>
                     </span>
                     <span className="block truncate text-sm text-muted-foreground">
-                      {line.packages} bultos · {formatQuantity(line.extraKg)} kg adic. · {line.trace || '—'}
+                      {formatCount(line.bultos)} bultos · {formatQuantity(line.kgAdicional)} kg adic. · {line.traza || '—'}
                     </span>
                   </span>
                 </label>

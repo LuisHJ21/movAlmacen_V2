@@ -7,20 +7,31 @@ interface DecimalInputProps {
   suffix?: string
   invalid?: boolean
   describedBy?: string
+  /** Máximo de decimales que se pueden escribir */
+  maxDecimals?: number
 }
 
-const toText = (n: number) => (Number.isFinite(n) ? String(n).replace('.', ',') : '')
+const toText = (n: number) => (Number.isFinite(n) ? String(n) : '')
 
 /**
- * Número decimal que acepta coma o punto (ej. "2,5").
- * Guarda el texto mientras se escribe para no perder la coma final.
+ * Número decimal con punto (ej. "2.5"), con un máximo de decimales. Si se escribe coma
+ * se toma como punto decimal (en estos campos no se escriben separadores de miles).
+ * Guarda el texto mientras se escribe para no perder el punto final.
  */
-export function DecimalInput({ label, value, onChange, suffix, invalid, describedBy }: DecimalInputProps) {
+export function DecimalInput({
+  label,
+  value,
+  onChange,
+  suffix,
+  invalid,
+  describedBy,
+  maxDecimals = 4,
+}: DecimalInputProps) {
   const [text, setText] = useState(toText(value))
 
   // Sincroniza si el valor cambia desde fuera
   useEffect(() => {
-    setText((current) => (Number(current.replace(',', '.')) === value ? current : toText(value)))
+    setText((current) => (Number(current) === value ? current : toText(value)))
   }, [value])
 
   return (
@@ -37,9 +48,14 @@ export function DecimalInput({ label, value, onChange, suffix, invalid, describe
         aria-describedby={describedBy}
         value={text}
         onChange={(e) => {
-          const cleaned = e.target.value.replace(/[^\d.,]/g, '').replace(/([.,].*)[.,]/, '$1')
+          const cleaned = e.target.value
+            .replace(/,/g, '.')
+            .replace(/[^\d.]/g, '')
+            .replace(/(\..*)\./, '$1')
+            // No permite escribir más decimales que maxDecimals
+            .replace(new RegExp(`([.][0-9]{${maxDecimals}})[0-9]+`), '$1')
           setText(cleaned)
-          const parsed = Number(cleaned.replace(',', '.'))
+          const parsed = Number(cleaned)
           onChange(cleaned === '' ? 0 : Number.isFinite(parsed) ? parsed : NaN)
         }}
         onFocus={(e) => e.target.select()}

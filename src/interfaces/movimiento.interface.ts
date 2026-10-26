@@ -4,26 +4,26 @@ export type MovementTypeFilter = 'I' | 'S' | ''
 /** Tipo de movimiento tal como lo devuelve la API */
 export type MovementKind = 'ING' | 'SAL'
 
-/** Respuesta cruda de GET /almacen/tipo-movimiento */
+/** Respuesta de GET /almacen/tipo-movimiento (claves ya en camelCase, ver utils/mapper) */
 export interface ApiMovementTypesResponse {
   success: boolean
   data: Array<{
-    COD_MOV: string
-    TIPO_MOV: MovementKind
-    NOM_MOV: string
-    CLASE_MOV: string
-    F_CONTABILIZA: '0' | '1'
-    F_REF: '0' | '1'
+    codMov: string
+    tipoMov: MovementKind
+    nomMov: string
+    claseMov: string
+    fContabiliza: '0' | '1'
+    fRef: '0' | '1'
   }>
 }
 
 export interface Movement {
-  code: string
-  kind: MovementKind
-  name: string
-  movementClass: string
-  /** F_CONTABILIZA = '1' */
-  posts: boolean
-  /** F_REF = '1': requiere documento de referencia */
-  requiresReference: boolean
+  codigo: string
+  tipo: MovementKind
+  nombre: string
+  clase: string
+  /** fContabiliza = '1' */
+  contabiliza: boolean
+  /** fRef = '1': requiere documento de referencia */
+  requiereReferencia: boolean
 }

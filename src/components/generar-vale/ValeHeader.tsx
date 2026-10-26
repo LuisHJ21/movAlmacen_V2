@@ -1,9 +1,8 @@
 import { ArrowDownToLine, ArrowUpFromLine, CalendarClock, Package, Warehouse as WarehouseIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
 import type { Warehouse } from '@/interfaces/almacen.interface'
 import type { Movement } from '@/interfaces/movimiento.interface'
 import type { Article } from '@/interfaces/pallet.interface'
-import { formatDateTime, toSentenceCase } from '@/utils/format'
+import { formatDateTime, formatShortDateTime, toSentenceCase } from '@/utils/format'
 
 interface ValeHeaderProps {
   date: Date
@@ -13,40 +12,60 @@ interface ValeHeaderProps {
   warehouse: Warehouse | null
 }
 
-function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
-  return (
-    <div className="flex gap-3 px-3 py-2">
-      <span aria-hidden className="mt-0.5 shrink-0 text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <dt className="text-xs text-muted-foreground">{label}</dt>
-        <dd className="leading-snug font-semibold">{children}</dd>
-      </div>
-    </div>
-  )
-}
-
-/** Cabecera general del vale */
+/** Cabecera general del vale, compacta: movimiento + fecha / artículo / almacén */
 export function ValeHeader({ date, movement, articleCode, article, warehouse }: ValeHeaderProps) {
-  const MovementIcon = movement.kind === 'ING' ? ArrowDownToLine : ArrowUpFromLine
+  const isIngreso = movement.tipo === 'ING'
+  const MovementIcon = isIngreso ? ArrowDownToLine : ArrowUpFromLine
+  const movementName = toSentenceCase(movement.nombre)
+  const articleName = article ? toSentenceCase(article.descripcion) : ''
+  const warehouseName = warehouse ? toSentenceCase(warehouse.descripcion) : ''
+
   return (
-    <section aria-label="Cabecera del vale" className="overflow-hidden rounded-xl border border-border bg-card">
-      <dl className="divide-y divide-border">
-        <Row icon={<CalendarClock className="size-5" />} label="Fecha y hora">
-          {formatDateTime(date)}
-        </Row>
-        <Row icon={<MovementIcon className="size-5" />} label={movement.kind === 'ING' ? 'Movimiento de ingreso' : 'Movimiento de salida'}>
-          <span className="font-mono">{movement.code}</span> · {toSentenceCase(movement.name)}
-        </Row>
-        <Row icon={<Package className="size-5" />} label="Artículo">
-          <span className="font-mono">{articleCode}</span>
-          {article && <span className="block font-normal text-muted-foreground">{toSentenceCase(article.description)}</span>}
-        </Row>
+    <section aria-label="Cabecera del vale" className="rounded-xl border border-border bg-card px-3 py-2">
+      <dl className="space-y-1">
+        {/* Movimiento + fecha y hora */}
+        <div className="flex items-center gap-2">
+          <dt className="sr-only">{isIngreso ? 'Movimiento de ingreso' : 'Movimiento de salida'}</dt>
+          <dd className="flex min-w-0 flex-1 items-center gap-1.5" title={`${movement.codigo} · ${movementName}`}>
+            <span className="flex shrink-0 items-center gap-1 rounded-md bg-primary px-1.5 py-0.5 text-on-primary">
+              <MovementIcon aria-hidden className="size-3.5" />
+              <span className="font-mono text-sm font-bold">{movement.codigo}</span>
+            </span>
+            <span className="truncate text-sm font-semibold">{movementName}</span>
+          </dd>
+          <dt className="sr-only">Fecha y hora</dt>
+          <dd className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+            <CalendarClock aria-hidden className="size-3.5" />
+            <time dateTime={date.toISOString()} title={formatDateTime(date)}>
+              {formatShortDateTime(date)}
+            </time>
+          </dd>
+        </div>
+
+        {/* Artículo */}
+        <div className="flex items-center gap-1.5 text-sm">
+          <dt>
+            <Package aria-hidden className="size-4 text-primary" />
+            <span className="sr-only">Artículo</span>
+          </dt>
+          <dd className="min-w-0 truncate" title={articleName ? `${articleCode} · ${articleName}` : articleCode}>
+            <span className="font-mono font-semibold">{articleCode}</span>
+            {articleName && <span className="text-muted-foreground"> · {articleName}</span>}
+          </dd>
+        </div>
+
+        {/* Almacén (solo cuando se eligió directamente) */}
         {warehouse && (
-          <Row icon={<WarehouseIcon className="size-5" />} label="Almacén">
-            <span className="font-mono">{warehouse.code}</span> · {toSentenceCase(warehouse.description)}
-          </Row>
+          <div className="flex items-center gap-1.5 text-sm">
+            <dt>
+              <WarehouseIcon aria-hidden className="size-4 text-primary" />
+              <span className="sr-only">Almacén</span>
+            </dt>
+            <dd className="min-w-0 truncate" title={`${warehouse.codigo} · ${warehouseName}`}>
+              <span className="font-mono font-semibold">{warehouse.codigo}</span>
+              <span className="text-muted-foreground"> · {warehouseName}</span>
+            </dd>
+          </div>
         )}
       </dl>
     </section>

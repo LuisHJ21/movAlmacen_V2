@@ -20,7 +20,8 @@ export function Alert({ type = 'info', children, onClose }: AlertProps) {
   return (
     <div role="alert" className={`flex items-center gap-3 rounded-lg border-l-4 py-1 pl-3 text-sm font-medium ${box}`}>
       <Icon aria-hidden className="size-5 shrink-0" />
-      <div className="flex-1 py-2">{children}</div>
+      {/* pre-line: respeta los saltos de línea de los mensajes de la API */}
+      <div className="flex-1 py-2 whitespace-pre-line">{children}</div>
       {onClose && (
         <button
           type="button"

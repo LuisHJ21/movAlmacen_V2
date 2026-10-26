@@ -6,13 +6,17 @@ import LoginPage from '@/pages/LoginPage'
 import HomePage from '@/pages/HomePage'
 import ComingSoonPage from '@/pages/ComingSoonPage'
 import GenerarValePage from '@/pages/GenerarValePage'
+import HistorialValesPage from '@/pages/HistorialValesPage'
+import DetalleValePage from '@/pages/DetalleValePage'
+import DetallePalletPage from '@/pages/DetallePalletPage'
+import AsignarUbicacionPage from '@/pages/AsignarUbicacionPage'
 
 /** Rutas del menú que ya tienen página propia */
-const builtPaths = ['/generar-vale']
+const builtPaths = ['/generar-vale', '/historial-vales', '/detalle-pallet', '/asignar-ubicacion']
 
 /** Solo usuarios autenticados; si no, redirige al login recordando la ruta */
 function ProtectedRoute() {
-  const { isAuthenticated } = useAuth()
+  const { autenticado: isAuthenticated } = useAuth()
   const location = useLocation()
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <Outlet />
@@ -20,7 +24,7 @@ function ProtectedRoute() {
 
 /** Solo usuarios sin sesión (ej. login). Al iniciar sesión vuelve a la ruta que se intentó abrir. */
 function PublicRoute() {
-  const { isAuthenticated } = useAuth()
+  const { autenticado: isAuthenticated } = useAuth()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
   return isAuthenticated ? <Navigate to={from} replace /> : <Outlet />
@@ -38,6 +42,10 @@ export default function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/generar-vale" element={<GenerarValePage />} />
+            <Route path="/historial-vales" element={<HistorialValesPage />} />
+            <Route path="/historial-vales/:valeNumber" element={<DetalleValePage />} />
+            <Route path="/detalle-pallet" element={<DetallePalletPage />} />
+            <Route path="/asignar-ubicacion" element={<AsignarUbicacionPage />} />
             {/* Opciones aún sin página */}
             {menuOptions
               .filter(({ path }) => !builtPaths.includes(path))

@@ -1,4 +1,3 @@
-import { useState, type FormEvent } from 'react'
 import { OptionList, type OptionItem } from '@/components/ui/OptionList'
 import { useWarehouses } from '@/hooks/useWarehouses'
 import type { Warehouse } from '@/interfaces/almacen.interface'
@@ -7,7 +6,6 @@ import type { Pallet } from '@/interfaces/pallet.interface'
 import { formatQuantity, toSentenceCase } from '@/utils/format'
 import { MovementChip } from './MovementChip'
 import { PalletChip } from './PalletChip'
-import { StepFooter } from './StepFooter'
 
 interface WarehouseStepProps {
   pallet: Pallet
@@ -17,41 +15,39 @@ interface WarehouseStepProps {
   onConfirm: (warehouse: Warehouse) => void
 }
 
-/** Destino cuando el movimiento NO requiere referencia (F_REF = 0) */
+/** Destino cuando el movimiento NO requiere referencia (F_REF = 0). Tocar un almacén avanza. */
 export function WarehouseStep({ pallet, articleCode, movement, initialWarehouse = null, onConfirm }: WarehouseStepProps) {
   const { warehouses, isLoading, error, reload } = useWarehouses()
-  const [selectedCode, setSelectedCode] = useState<string | null>(initialWarehouse?.code ?? null)
-  const selected = warehouses.find((w) => w.code === selectedCode) ?? null
 
   const items: OptionItem[] = warehouses.map((w) => ({
-    key: w.code,
-    badge: w.code,
-    title: toSentenceCase(w.description),
+    key: w.codigo,
+    badge: w.codigo,
+    title: toSentenceCase(w.descripcion),
     meta: [
-      `Saldo ${formatQuantity(w.balance)}`,
-      w.locations.length ? `Ubic. ${w.locations.join(', ')}` : 'Sin ubicaciones',
+      `Saldo ${formatQuantity(w.saldo)}`,
+      w.ubicaciones.length ? `Ubic. ${w.ubicaciones.join(', ')}` : 'Sin ubicaciones',
     ].join(' · '),
   }))
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (selected) onConfirm(selected)
+  const handleSelect = (code: string) => {
+    const warehouse = warehouses.find((w) => w.codigo === code)
+    if (warehouse) onConfirm(warehouse)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-2 px-4 pt-4">
         <PalletChip pallet={pallet} articleCode={articleCode} />
         <MovementChip movement={movement} />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4">
         <OptionList
           legend="Almacén"
           name="warehouse"
           items={items}
-          selectedKey={selectedCode}
-          onSelect={setSelectedCode}
+          selectedKey={initialWarehouse?.codigo ?? null}
+          onSelect={handleSelect}
           isLoading={isLoading}
           error={error}
           onRetry={() => void reload()}
@@ -59,8 +55,6 @@ export function WarehouseStep({ pallet, articleCode, movement, initialWarehouse 
           searchPlaceholder="Buscar almacén"
         />
       </div>
-
-      <StepFooter disabled={!selected} />
-    </form>
+    </div>
   )
 }

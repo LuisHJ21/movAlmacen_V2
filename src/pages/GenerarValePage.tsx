@@ -1,5 +1,8 @@
-import { useState } from 'react'
-import { Plus, RotateCcw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Plus, Save, X } from 'lucide-react'
+import { ValeSaved } from '@/components/generar-vale/ValeSaved'
+import { useAuth } from '@/hooks/useAuth'
+import { isAxiosError } from 'axios'
 import { getApiErrorMessage } from '@/api/axiosClient'
 import { ArticleStep } from '@/components/generar-vale/ArticleStep'
 import { ItemPickerStep } from '@/components/generar-vale/ItemPickerStep'
@@ -10,6 +13,7 @@ import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
 import { ValeSummary } from '@/components/generar-vale/ValeSummary'
 import { WarehouseStep } from '@/components/generar-vale/WarehouseStep'
 import { Alert } from '@/components/ui/Alert'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Matrix, ReferenceDocument, Warehouse } from '@/interfaces/almacen.interface'
@@ -18,9 +22,14 @@ import type { Pallet, PalletData } from '@/interfaces/pallet.interface'
 import { almacenService } from '@/services/almacen.service'
 import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
 import { palletService } from '@/services/pallet.service'
+import { valeService } from '@/services/vale.service'
+import { formatWeight, toSentenceCase } from '@/utils/format'
 import { getAllowedMovementKind } from '@/utils/validations'
 import {
+  generateFormId,
   buildValeLines,
+  buildValeRequest,
+  valeTotals,
   excludedLines,
   getValeWarehouse,
   isEmptyItem,
@@ -29,7 +38,17 @@ import {
   palletInWarehouse,
 } from '@/utils/vale'
 
-type Step = 'scan' | 'article' | 'movement' | 'matrix' | 'warehouse' | 'reference' | 'summary' | 'addPallet' | 'selectItems'
+type Step =
+  | 'scan'
+  | 'article'
+  | 'movement'
+  | 'matrix'
+  | 'warehouse'
+  | 'reference'
+  | 'summary'
+  | 'addPallet'
+  | 'selectItems'
+  | 'done'
 
 const stepTitles: Record<Step, string> = {
   scan: 'Escanear pallet',
@@ -41,12 +60,13 @@ const stepTitles: Record<Step, string> = {
   summary: 'Resumen',
   addPallet: 'Agregar pallet',
   selectItems: 'Elegir ítems',
+  done: 'Vale guardado',
 }
 
 /**
  * Flujo de Generar vale:
  * escanear → artículo (si hay varios) → movimiento → matriz (si hay varias)
- * → almacén (F_REF=0) | referencia (F_REF=1; en ingresos viene del pallet) → resumen
+ * → almacén (fRef=0) | referencia (fRef=1; en ingresos viene del pallet) → resumen
  * En salidas: se eligen los ítems de cada pallet (si tiene más de uno), se pueden quitar ítems,
  * volver a agregar los excluidos y agregar más pallets del mismo artículo y almacén.
  */
@@ -65,6 +85,7 @@ interface ItemPicker {
   pending?: ValePalletGroup
 }
 export default function GenerarValePage() {
+  const { usuario: user } = useAuth()
   // Historial de pasos visitados: los pasos automáticos no se apilan, así ← regresa al último elegido
   const [history, setHistory] = useState<Step[]>(['scan'])
   const step = history[history.length - 1]
@@ -81,6 +102,8 @@ export default function GenerarValePage() {
   // Detalle del vale: el primer grupo es el pallet escaneado al inicio
   const [groups, setGroups] = useState<ValePalletGroup[]>([])
   const [valeDate, setValeDate] = useState(() => new Date())
+  // Id del formulario: se genera junto con la fecha de carga y se reutiliza en reintentos
+  const [formId, setFormId] = useState('')
 
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyError, setVerifyError] = useState<string>()
@@ -90,6 +113,12 @@ export default function GenerarValePage() {
   const [addError, setAddError] = useState<string>()
   const [summaryNotice, setSummaryNotice] = useState<string>()
   const [itemPicker, setItemPicker] = useState<ItemPicker | null>(null)
+  const [saveNotice, setSaveNotice] = useState<{ type: 'error' | 'info'; text: string }>()
+  const [isSaving, setIsSaving] = useState(false)
+  const [savedMessage, setSavedMessage] = useState<string>()
+  const [savedValeNumber, setSavedValeNumber] = useState<string>()
+  // Cualquier cambio en el detalle invalida el aviso de guardado
+  useEffect(() => setSaveNotice(undefined), [groups])
 
   const goTo = (next: Step) => setHistory((h) => [...h, next])
   const goBack = () => setHistory((h) => h.slice(0, -1))
@@ -101,6 +130,9 @@ export default function GenerarValePage() {
     resetFromMovement()
     setMovement(null)
     setVerifyError(undefined)
+    setSaveNotice(undefined)
+    setSavedMessage(undefined)
+    setSavedValeNumber(undefined)
   }
 
   // Lo que depende del movimiento (y del artículo) se recalcula al cambiarlos
@@ -122,7 +154,7 @@ export default function GenerarValePage() {
     setVerifyError(undefined)
     try {
       const verified = await palletService.verify(code)
-      if (verified.articles.length === 0) {
+      if (verified.articulos.length === 0) {
         setVerifyError('El pallet no tiene artículos')
         return
       }
@@ -130,8 +162,8 @@ export default function GenerarValePage() {
       setMovement(null)
       resetFromMovement()
       // Un solo artículo: se elige automáticamente
-      if (verified.articles.length === 1) {
-        setArticleCode(verified.articles[0])
+      if (verified.articulos.length === 1) {
+        setArticleCode(verified.articulos[0])
         goTo('movement')
       } else {
         setArticleCode(null)
@@ -161,13 +193,13 @@ export default function GenerarValePage() {
     selectedWarehouseCode: string | null,
   ) => {
     if (!pallet) return
-    const pool = buildValeLines(data.items, pallet.code, mov.kind, selectedReference)
-    const first: ValePalletGroup = { pallet, lines: pool, pool }
+    const pool = buildValeLines(data.items, pallet.codigo, mov.tipo, selectedReference)
+    const first: ValePalletGroup = { pallet, lineas: pool, disponibles: pool }
     // Pallets agregados antes (al regresar a cambiar almacén o referencia):
     // se conservan los del nuevo almacén, con la nueva referencia
     const valeWarehouse = getValeWarehouse(selectedWarehouseCode, selectedReference)
     const extras = groups.slice(1)
-    const kept = extras.filter((g) => palletInWarehouse(g.pallet.warehouse, valeWarehouse))
+    const kept = extras.filter((g) => palletInWarehouse(g.pallet.almacen, valeWarehouse))
     const removed = extras.length - kept.length
     setSummaryNotice(
       removed > 0
@@ -178,15 +210,17 @@ export default function GenerarValePage() {
       first,
       ...kept.map((g) => ({
         ...g,
-        lines: g.lines.map((l) => ({ ...l, reference: selectedReference })),
-        pool: g.pool.map((l) => ({ ...l, reference: selectedReference })),
+        lineas: g.lineas.map((l) => ({ ...l, referencia: selectedReference })),
+        disponibles: g.disponibles.map((l) => ({ ...l, referencia: selectedReference })),
       })),
     ])
-    setValeDate(new Date())
+    const loadedAt = new Date()
+    setValeDate(loadedAt)
+    setFormId(generateFormId(loadedAt))
 
     // Salida con varios ítems: primero se eligen cuáles entran al vale
-    if (mov.kind === 'SAL' && pool.length > 1) {
-      setItemPicker({ mode: 'initial', palletCode: pallet.code, candidates: pool })
+    if (mov.tipo === 'SAL' && pool.length > 1) {
+      setItemPicker({ mode: 'initial', palletCode: pallet.codigo, candidates: pool })
       return goTo('selectItems')
     }
     goTo('summary')
@@ -195,23 +229,23 @@ export default function GenerarValePage() {
   const updateLine = (
     palletCode: string,
     index: number,
-    changes: Partial<Pick<ValeLine, 'packages' | 'extraKg'>>,
+    changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>,
   ) =>
     setGroups((current) =>
       current.map((g) =>
-        g.pallet.code !== palletCode
+        g.pallet.codigo !== palletCode
           ? g
-          : { ...g, lines: g.lines.map((line, i) => (i === index ? { ...line, ...changes } : line)) },
+          : { ...g, lineas: g.lineas.map((line, i) => (i === index ? { ...line, ...changes } : line)) },
       ),
     )
 
   // Almacén al que pertenece el vale (elegido directo o desde la referencia)
-  const valeWarehouse = getValeWarehouse(warehouse?.code, reference)
+  const valeWarehouse = getValeWarehouse(warehouse?.codigo, reference)
 
   // Salidas: agregar otro pallet del mismo artículo y del mismo almacén
   const handleAddPallet = async (code: string) => {
     if (!movement || !articleCode) return
-    if (groups.some((g) => g.pallet.code === code)) {
+    if (groups.some((g) => g.pallet.codigo === code)) {
       setAddError('El pallet ya está en el vale')
       return
     }
@@ -223,24 +257,24 @@ export default function GenerarValePage() {
         setAddError('El pallet no tiene almacén y ubicación: no puede salir')
         return
       }
-      if (!verified.articles.includes(articleCode)) {
+      if (!verified.articulos.includes(articleCode)) {
         setAddError(`El pallet no contiene el artículo ${articleCode}`)
         return
       }
-      if (!palletInWarehouse(verified.warehouse, valeWarehouse)) {
-        setAddError(`El pallet está en el almacén ${verified.warehouse}; el vale es del almacén ${valeWarehouse}`)
+      if (!palletInWarehouse(verified.almacen, valeWarehouse)) {
+        setAddError(`El pallet está en el almacén ${verified.almacen}; el vale es del almacén ${valeWarehouse}`)
         return
       }
-      const data = await palletService.getData(verified.code, movement.code, articleCode)
+      const data = await palletService.getData(verified.codigo, movement.codigo, articleCode)
       if (data.items.every(isEmptyItem)) {
         setAddError('El pallet no tiene ítems disponibles para este movimiento')
         return
       }
-      const pool = buildValeLines(data.items, verified.code, movement.kind, reference)
-      const group: ValePalletGroup = { pallet: verified, lines: pool, pool }
+      const pool = buildValeLines(data.items, verified.codigo, movement.tipo, reference)
+      const group: ValePalletGroup = { pallet: verified, lineas: pool, disponibles: pool }
       if (pool.length > 1) {
         // Varios ítems: elegir cuáles entran antes de sumarlo al vale
-        setItemPicker({ mode: 'newPallet', palletCode: verified.code, candidates: pool, pending: group })
+        setItemPicker({ mode: 'newPallet', palletCode: verified.codigo, candidates: pool, pending: group })
         return goTo('selectItems')
       }
       setGroups((current) => [...current, group])
@@ -254,30 +288,30 @@ export default function GenerarValePage() {
 
   const removePallet = (palletCode: string) => {
     if (window.confirm(`¿Quitar el pallet ${palletCode} del vale?`)) {
-      setGroups((current) => current.filter((g) => g.pallet.code !== palletCode))
+      setGroups((current) => current.filter((g) => g.pallet.codigo !== palletCode))
     }
   }
 
   // Quitar un ítem: vuelve a quedar disponible en "Agregar ítems".
   // En un pallet agregado, quitar su último ítem quita el pallet.
   const removeLine = (palletCode: string, item: string) => {
-    const group = groups.find((g) => g.pallet.code === palletCode)
+    const group = groups.find((g) => g.pallet.codigo === palletCode)
     if (!group) return
-    const isInitial = groups[0]?.pallet.code === palletCode
-    if (group.lines.length === 1) {
+    const isInitial = groups[0]?.pallet.codigo === palletCode
+    if (group.lineas.length === 1) {
       if (isInitial) return
       if (window.confirm(`Es el último ítem del pallet ${palletCode}. ¿Quitar el pallet del vale?`)) {
-        setGroups((current) => current.filter((g) => g.pallet.code !== palletCode))
+        setGroups((current) => current.filter((g) => g.pallet.codigo !== palletCode))
       }
       return
     }
     setGroups((current) =>
-      current.map((g) => (g.pallet.code === palletCode ? { ...g, lines: g.lines.filter((l) => l.item !== item) } : g)),
+      current.map((g) => (g.pallet.codigo === palletCode ? { ...g, lineas: g.lineas.filter((l) => l.item !== item) } : g)),
     )
   }
 
   const openAddItems = (palletCode: string) => {
-    const group = groups.find((g) => g.pallet.code === palletCode)
+    const group = groups.find((g) => g.pallet.codigo === palletCode)
     if (!group) return
     setItemPicker({ mode: 'more', palletCode, candidates: excludedLines(group) })
     goTo('selectItems')
@@ -287,14 +321,14 @@ export default function GenerarValePage() {
     if (!itemPicker) return
     const { mode, palletCode, pending } = itemPicker
     if (mode === 'newPallet' && pending) {
-      setGroups((current) => [...current, { ...pending, lines: selected }])
+      setGroups((current) => [...current, { ...pending, lineas: selected }])
       // Regresa al resumen (saca "Elegir ítems" y "Agregar pallet" del historial)
       setHistory((h) => h.slice(0, -2))
     } else {
       setGroups((current) =>
         current.map((g) => {
-          if (g.pallet.code !== palletCode) return g
-          return { ...g, lines: mode === 'initial' ? selected : mergeLines(g, selected) }
+          if (g.pallet.codigo !== palletCode) return g
+          return { ...g, lineas: mode === 'initial' ? selected : mergeLines(g, selected) }
         }),
       )
       if (mode === 'initial') goTo('summary')
@@ -303,9 +337,9 @@ export default function GenerarValePage() {
     setItemPicker(null)
   }
 
-  // Desde el resumen: confirmar antes de descartar el vale armado
-  const confirmRestart = () => {
-    if (window.confirm('¿Descartar este vale y empezar uno nuevo?')) restart()
+  // Cancelar: descarta todo lo avanzado y vuelve a escanear un pallet
+  const confirmCancel = () => {
+    if (window.confirm('¿Cancelar este vale? Se perderá lo que llevas avanzado.')) restart()
   }
 
   const openAddPallet = () => {
@@ -315,9 +349,9 @@ export default function GenerarValePage() {
 
   // Siguiente destino tras tener matriz: almacén, referencia por elegir o referencia del pallet
   const goToDestination = (mov: Movement, data: PalletData) => {
-    if (!mov.requiresReference) return goTo('warehouse')
+    if (!mov.requiereReferencia) return goTo('warehouse')
 
-    const palletReference = mov.kind === 'ING' ? (data.items.find((i) => i.reference)?.reference ?? null) : null
+    const palletReference = mov.tipo === 'ING' ? (data.items.find((i) => i.referencia)?.referencia ?? null) : null
     if (palletReference) {
       // Ingreso: la referencia ya viene en los datos del pallet
       setReference(palletReference)
@@ -335,16 +369,16 @@ export default function GenerarValePage() {
     setPrepareError(undefined)
     try {
       const [foundMatrices, data] = await Promise.all([
-        almacenService.getMatrices(selected.code, articleCode),
-        palletService.getData(pallet.code, selected.code, articleCode),
+        almacenService.getMatrices(selected.codigo, articleCode),
+        palletService.getData(pallet.codigo, selected.codigo, articleCode),
       ])
 
       if (foundMatrices.length === 0) {
-        setPrepareError(`No hay matriz contable para ${selected.code} con el artículo ${articleCode}. Elige otro movimiento.`)
+        setPrepareError(`No hay matriz contable para ${selected.codigo} con el artículo ${articleCode}. Elige otro movimiento.`)
         return
       }
 
-      if (selected.code !== movement?.code) resetFromMovement()
+      if (selected.codigo !== movement?.codigo) resetFromMovement()
       setMovement(selected)
       setMatrices(foundMatrices)
       setPalletData(data)
@@ -370,7 +404,7 @@ export default function GenerarValePage() {
 
   const handleWarehouse = (selected: Warehouse) => {
     setWarehouse(selected)
-    if (movement && palletData) openSummary(movement, palletData, null, selected.code)
+    if (movement && palletData) openSummary(movement, palletData, null, selected.codigo)
   }
 
   const handleReference = (selected: ReferenceDocument) => {
@@ -380,7 +414,52 @@ export default function GenerarValePage() {
   }
 
   // Salidas: no se puede continuar con líneas inválidas
-  const linesValid = movement?.kind !== 'SAL' || groups.every((g) => g.lines.every(isValeLineValid))
+  const linesValid = movement?.tipo !== 'SAL' || groups.every((g) => g.lineas.every(isValeLineValid))
+
+  const allLines = groups.flatMap((g) => g.lineas)
+  const totals = valeTotals(allLines)
+  // Se guarda con ítems válidos y algo de peso que mover
+  const canSave = linesValid && allLines.length > 0 && totals.weight > 0
+
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false)
+  const closeConfirmSave = useCallback(() => setConfirmSaveOpen(false), [])
+
+  // Guardar: POST /vale con un detalle por ítem incluido
+  const handleSave = async () => {
+    if (!canSave || isSaving || !movement || !articleCode || !matrix || !user) return
+    setIsSaving(true)
+    setSaveNotice(undefined)
+    try {
+      const response = await valeService.create(
+        buildValeRequest({
+          date: valeDate,
+          formId,
+          movement,
+          articleCode,
+          matrixCode: matrix.codigo,
+          warehouseCode: valeWarehouse,
+          reference,
+          username: user.usuario,
+          groups,
+        }),
+      )
+      setSavedMessage(response?.message)
+      setSavedValeNumber(response?.nroVale?.trim() || undefined)
+      // Pantalla final: no se puede regresar al resumen ya guardado
+      setHistory(['done'])
+    } catch (error) {
+      // Sin respuesta (caída, timeout o error del servidor sin CORS): el vale pudo registrarse igual
+      const noResponse = isAxiosError(error) && !error.response
+      setSaveNotice({
+        type: 'error',
+        text: noResponse
+          ? 'No se recibió respuesta del servidor. El vale pudo haberse registrado: verifícalo antes de volver a guardar.'
+          : getApiErrorMessage(error, 'No fue posible guardar el vale'),
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const stepNumber = history.length
 
@@ -388,8 +467,21 @@ export default function GenerarValePage() {
     <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col">
       <PageHeader
         title="Generar vale"
-        subtitle={`Paso ${stepNumber} · ${stepTitles[step]}`}
-        onBack={history.length > 1 ? goBack : undefined}
+        subtitle={step === 'done' ? stepTitles.done : `Paso ${stepNumber} · ${stepTitles[step]}`}
+        onBack={history.length > 1 && !isSaving ? goBack : undefined}
+        action={
+          history.length > 1 &&
+          !isSaving && (
+            <button
+              type="button"
+              onClick={confirmCancel}
+              className="flex h-touch items-center gap-1.5 rounded-lg px-3 font-heading text-sm font-semibold text-destructive transition-colors duration-150 hover:bg-destructive-soft active:bg-destructive-soft"
+            >
+              <X aria-hidden className="size-5" />
+              Cancelar
+            </button>
+          )
+        }
       />
 
       {step === 'scan' && (
@@ -413,7 +505,7 @@ export default function GenerarValePage() {
           onConfirm={handleMovement}
           isSubmitting={isPreparing}
           submitError={prepareError}
-          onSelectionChange={() => setPrepareError(undefined)}
+          onDismissError={() => setPrepareError(undefined)}
         />
       )}
 
@@ -462,40 +554,105 @@ export default function GenerarValePage() {
               date={valeDate}
               movement={movement}
               articleCode={articleCode}
-              article={palletData?.article ?? null}
+              article={palletData?.articulo ?? null}
               warehouse={warehouse}
               matrix={matrix}
               groups={groups}
               onLineChange={updateLine}
               onRemovePallet={removePallet}
-              onRemoveLine={movement.kind === 'SAL' ? removeLine : undefined}
-              onAddItems={movement.kind === 'SAL' ? openAddItems : undefined}
+              onRemoveLine={movement.tipo === 'SAL' ? removeLine : undefined}
+              onAddItems={movement.tipo === 'SAL' ? openAddItems : undefined}
             />
           </div>
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
-            {/* Temporal: el registro del vale está pendiente de definir */}
-            <p className={`text-center text-sm ${linesValid ? 'text-muted-foreground' : 'font-medium text-destructive'}`}>
-              {linesValid ? 'El registro del vale está en construcción.' : 'Corrige los ítems marcados en rojo.'}
-            </p>
-            {/* Salidas: "Agregar pallet" siempre visible, fijo en el pie */}
-            <div className={movement.kind === 'SAL' ? 'grid grid-cols-2 gap-2' : ''}>
-              {movement.kind === 'SAL' && (
-                <Button onClick={openAddPallet} icon={<Plus aria-hidden className="size-5" />} className="px-3">
+            {saveNotice ? (
+              <Alert type={saveNotice.type} onClose={() => setSaveNotice(undefined)}>
+                {saveNotice.text}
+              </Alert>
+            ) : (
+              !canSave && (
+                <p className="text-center text-sm font-medium text-destructive">
+                  {linesValid ? 'El vale no tiene peso para mover.' : 'Corrige los ítems marcados en rojo.'}
+                </p>
+              )
+            )}
+            {/* Salidas: "Agregar pallet" siempre visible, fijo en el pie junto a Guardar */}
+            <div className={movement.tipo === 'SAL' ? 'grid grid-cols-2 gap-2' : ''}>
+              {movement.tipo === 'SAL' && (
+                <Button
+                  variant="secondary"
+                  onClick={openAddPallet}
+                  disabled={isSaving}
+                  icon={<Plus aria-hidden className="size-5" />}
+                  className="px-3"
+                >
                   Agregar pallet
                 </Button>
               )}
               <Button
-                variant="secondary"
                 fullWidth
-                onClick={confirmRestart}
-                icon={<RotateCcw aria-hidden className="size-5" />}
+                onClick={() => setConfirmSaveOpen(true)}
+                disabled={!canSave}
+                isLoading={isSaving}
+                icon={<Save aria-hidden className="size-5" />}
                 className="px-3"
               >
-                Nuevo vale
+                {isSaving ? 'Guardando…' : 'Guardar'}
               </Button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirmación antes de registrar el vale */}
+      <ConfirmDialog
+        open={confirmSaveOpen}
+        title="¿Guardar el vale?"
+        Icon={Save}
+        confirmLabel="Sí, guardar"
+        cancelLabel="Revisar"
+        confirmIcon={<Save aria-hidden className="size-5" />}
+        onCancel={closeConfirmSave}
+        onConfirm={() => {
+          setConfirmSaveOpen(false)
+          void handleSave()
+        }}
+      >
+        {movement && (
+          <dl className="divide-y divide-border rounded-lg border border-border px-3 text-sm">
+            <div className="flex justify-between gap-3 py-1.5">
+              <dt className="text-muted-foreground">Movimiento</dt>
+              <dd className="truncate font-semibold">
+                <span className="font-mono">{movement.codigo}</span> · {toSentenceCase(movement.nombre)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3 py-1.5">
+              <dt className="text-muted-foreground">Detalle</dt>
+              <dd className="font-semibold">
+                {groups.length} {groups.length === 1 ? 'pallet' : 'pallets'} · {allLines.length}{' '}
+                {allLines.length === 1 ? 'ítem' : 'ítems'}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3 py-1.5">
+              <dt className="text-muted-foreground">Peso total</dt>
+              <dd className="font-mono font-bold">{formatWeight(totals.weight)}</dd>
+            </div>
+          </dl>
+        )}
+        <p className="mt-2 text-sm text-muted-foreground">Una vez guardado, el vale no se podrá editar desde aquí.</p>
+      </ConfirmDialog>
+
+      {step === 'done' && movement && articleCode && (
+        <ValeSaved
+          movement={movement}
+          articleCode={articleCode}
+          palletCount={groups.length}
+          itemCount={allLines.length}
+          totalWeight={totals.weight}
+          date={valeDate}
+          message={savedMessage}
+          valeNumber={savedValeNumber}
+        />
       )}
 
       {step === 'addPallet' && articleCode && (

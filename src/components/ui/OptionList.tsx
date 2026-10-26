@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { AlertCircle, Check, Inbox, RotateCcw, Search, X } from 'lucide-react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
+import { AlertCircle, Check, ChevronRight, Inbox, Loader2, RotateCcw, Search, X } from 'lucide-react'
 import { Button } from './Button'
 
 export interface OptionItem {
@@ -11,14 +11,23 @@ export interface OptionItem {
   meta?: ReactNode
   /** Texto adicional para la búsqueda */
   searchText?: string
+  /** No se puede elegir (ej. almacén sin ubicaciones) */
+  disabled?: boolean
 }
 
 interface OptionListProps {
   legend: string
+  /** Identifica la lista (data-list), útil para pruebas */
   name: string
   items: OptionItem[]
+  /** Opción elegida antes (se resalta al regresar a este paso) */
   selectedKey: string | null
+  /** Se llama al tocar una opción: el paso avanza de inmediato */
   onSelect: (key: string) => void
+  /** Opción tocada que está procesándose (muestra un indicador de carga) */
+  pendingKey?: string | null
+  /** Bloquea las opciones (ej. mientras se procesa una) */
+  disabled?: boolean
   isLoading?: boolean
   error?: string
   onRetry?: () => void
@@ -32,7 +41,8 @@ interface OptionListProps {
 }
 
 /**
- * Lista de selección única que ocupa el alto libre y se desplaza internamente.
+ * Lista de elección única: tocar una opción la elige y avanza (sin botón Continuar).
+ * Ocupa el alto libre y se desplaza internamente.
  * Incluye estados de carga, error con reintento, vacío y buscador.
  */
 export function OptionList({
@@ -48,7 +58,10 @@ export function OptionList({
   searchThreshold = 8,
   searchPlaceholder = 'Buscar',
   badgePlacement = 'side',
+  pendingKey = null,
+  disabled = false,
 }: OptionListProps) {
+  const legendId = useId()
   const [query, setQuery] = useState('')
   const showSearch = items.length >= searchThreshold
 
@@ -94,8 +107,10 @@ export function OptionList({
   }
 
   return (
-    <fieldset className="flex min-h-0 flex-1 flex-col">
-      <legend className="mb-1.5 text-sm font-semibold text-foreground">{legend}</legend>
+    <div data-list={name} className="flex min-h-0 flex-1 flex-col">
+      <p id={legendId} className="mb-1.5 text-sm font-semibold text-foreground">
+        {legend}
+      </p>
 
       {showSearch && (
         <div className="relative mb-2">
@@ -129,13 +144,14 @@ export function OptionList({
         {visible.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground">Sin resultados para “{query}”.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul aria-labelledby={legendId} className="space-y-2">
             {visible.map((item) => {
               const isSelected = selectedKey === item.key
+              const isPending = pendingKey === item.key
               const badge = item.badge && (
                 <span
                   className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-sm font-bold ${
-                    isSelected ? 'bg-primary text-on-primary' : 'bg-muted text-muted-foreground'
+                    isSelected || isPending ? 'bg-primary text-on-primary' : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {item.badge}
@@ -143,33 +159,39 @@ export function OptionList({
               )
               return (
                 <li key={item.key}>
-                  <label
-                    className={`relative flex min-h-touch cursor-pointer items-center gap-3 rounded-lg border-2 px-3 py-2 transition-colors duration-150 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring ${
-                      isSelected ? 'border-primary bg-primary-soft' : 'border-border bg-card hover:bg-muted active:bg-muted'
+                  <button
+                    type="button"
+                    data-key={item.key}
+                    onClick={() => onSelect(item.key)}
+                    disabled={disabled || item.disabled}
+                    aria-current={isSelected ? 'true' : undefined}
+                    aria-busy={isPending || undefined}
+                    className={`flex min-h-touch w-full items-center gap-3 rounded-lg border-2 px-3 py-2 text-left transition-colors duration-150 ${item.disabled ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'} ${
+                      isSelected || isPending
+                        ? 'border-primary bg-primary-soft'
+                        : 'border-border bg-card hover:bg-muted active:border-primary active:bg-primary-soft disabled:opacity-60'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name={name}
-                      value={item.key}
-                      checked={isSelected}
-                      onChange={() => onSelect(item.key)}
-                      className="sr-only"
-                    />
                     {badgePlacement === 'side' && badge}
                     <span className="min-w-0 flex-1">
                       {badgePlacement === 'top' && badge && <span className="mb-1 inline-block">{badge}</span>}
                       <span className="block leading-snug font-medium">{item.title}</span>
                       {item.meta && <span className="block text-sm text-muted-foreground">{item.meta}</span>}
                     </span>
-                    {isSelected && <Check aria-hidden className="size-5 shrink-0 text-primary" />}
-                  </label>
+                    {isPending ? (
+                      <Loader2 aria-hidden className="size-5 shrink-0 animate-spin text-primary" />
+                    ) : isSelected ? (
+                      <Check aria-hidden className="size-5 shrink-0 text-primary" />
+                    ) : (
+                      <ChevronRight aria-hidden className="size-5 shrink-0 text-stone-400" />
+                    )}
+                  </button>
                 </li>
               )
             })}
           </ul>
         )}
       </div>
-    </fieldset>
+    </div>
   )
 }

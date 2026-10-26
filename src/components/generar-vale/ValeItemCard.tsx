@@ -12,7 +12,7 @@ interface ValeItemCardProps {
   /** Salidas: bultos y kg adicionales editables */
   editable: boolean
   errors?: ValeLineErrors
-  onChange?: (changes: Partial<Pick<ValeLine, 'packages' | 'extraKg'>>) => void
+  onChange?: (changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
   /** Salidas: quitar el ítem del vale. Si no se pasa, no hay botón (ingresos) */
   onRemove?: () => void
   /** Motivo por el que no se puede quitar (ej. último ítem del pallet inicial) */
@@ -68,7 +68,7 @@ export function ValeItemCard({
 }: ValeItemCardProps) {
   const id = useId()
   const weight = lineWeight(line)
-  const errorText = errors.packages ?? errors.extraKg ?? errors.weight
+  const errorText = errors.bultos ?? errors.kgAdicional ?? errors.peso
   const hasError = !!errorText
 
   return (
@@ -83,7 +83,7 @@ export function ValeItemCard({
         className={`flex items-center gap-2.5 bg-primary text-on-primary ${onRemove ? 'py-1 pr-1 pl-3' : 'px-3 py-2.5'}`}
       >
         <span className="rounded-lg bg-white/15 px-2 py-1 font-heading text-sm font-bold">#{line.item}</span>
-        <span className="min-w-0 truncate font-heading text-lg font-semibold">Lote {line.lot || '—'}</span>
+        <span className="min-w-0 truncate font-heading text-lg font-semibold">Lote {line.lote || '—'}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1">
           <Weight aria-hidden className="size-4" />
           <span className="font-heading font-bold whitespace-nowrap">{formatWeight(weight)}</span>
@@ -105,8 +105,8 @@ export function ValeItemCard({
       <dl className="divide-y divide-border px-3">
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="pr-2.5">
-            <Field Icon={FileText} label="Doc. referencia" hint={line.reference?.docType}>
-              {line.reference?.orderNumber ?? '—'}
+            <Field Icon={FileText} label="Doc. referencia" hint={line.referencia?.tipoDoc}>
+              {line.referencia?.nroOrden ?? '—'}
             </Field>
           </div>
           <div className="pl-2.5">
@@ -117,7 +117,7 @@ export function ValeItemCard({
         </div>
 
         <Field Icon={ScanBarcode} label="Trazabilidad">
-          {line.trace || '—'}
+          {line.traza || '—'}
         </Field>
 
         {editable ? (
@@ -126,30 +126,30 @@ export function ValeItemCard({
             <div className="min-w-0">
               <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Package aria-hidden className="size-4 text-primary" />
-                Bultos <span className="text-stone-400">/ {line.availablePackages}</span>
+                Bultos <span className="text-stone-400">/ {line.bultosDisponibles}</span>
               </p>
               <NumberStepper
                 label={`Bultos del ítem ${line.item}`}
-                value={line.packages}
+                value={line.bultos}
                 min={0}
-                max={line.availablePackages}
-                invalid={!!errors.packages || !!errors.weight}
+                max={line.bultosDisponibles}
+                invalid={!!errors.bultos || !!errors.peso}
                 describedBy={hasError ? `${id}-error` : undefined}
-                onChange={(packages) => onChange?.({ packages })}
+                onChange={(packages) => onChange?.({ bultos: packages })}
               />
             </div>
             <div className="min-w-0">
               <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Weight aria-hidden className="size-4 text-success" />
-                KG adicional <span className="text-stone-400">/ {formatQuantity(line.unitWeight)}</span>
+                KG adicional <span className="text-stone-400">/ {formatQuantity(line.pesoUnidad)}</span>
               </p>
               <DecimalInput
                 label={`KG adicional del ítem ${line.item}`}
-                value={line.extraKg}
+                value={line.kgAdicional}
                 suffix="kg"
-                invalid={!!errors.extraKg || !!errors.weight}
+                invalid={!!errors.kgAdicional || !!errors.peso}
                 describedBy={hasError ? `${id}-error` : undefined}
-                onChange={(extraKg) => onChange?.({ extraKg })}
+                onChange={(extraKg) => onChange?.({ kgAdicional: extraKg })}
               />
             </div>
           </div>
@@ -157,12 +157,12 @@ export function ValeItemCard({
           <div className="grid grid-cols-2 divide-x divide-border">
             <div className="pr-2.5">
               <Field Icon={Package} label="Bultos">
-                {line.packages}
+                {line.bultos}
               </Field>
             </div>
             <div className="pl-2.5">
               <Field Icon={Weight} label="KG adicional" tone="success">
-                {formatQuantity(line.extraKg)}
+                {formatQuantity(line.kgAdicional)}
               </Field>
             </div>
           </div>

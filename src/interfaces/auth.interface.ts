@@ -1,26 +1,26 @@
 export interface User {
-  username: string
-  fullName: string
-  profile: string
+  usuario: string
+  nombre: string
+  perfil: string
 }
 
 export interface LoginCredentials {
-  username: string
-  password: string
-  remember: boolean
+  usuario: string
+  clave: string
+  recordar: boolean
 }
 
-/** Respuesta cruda de POST /login */
+/** Respuesta de POST /login (claves ya en camelCase, ver utils/mapper) */
 export interface ApiLoginResponse {
   success: boolean
   data: {
-    COD_USR: string
-    NOMBRE: string
-    PERFIL: string
+    codUsr: string
+    nombre: string
+    perfil: string
   }
-  access_token: string
-  token_type: string
-  expires_in: number
+  accessToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 /** Error devuelto por la API: { error, code } */
@@ -32,16 +32,16 @@ export interface ApiError {
 
 export interface LoginResult {
   token: string
-  user: User
+  usuario: User
   /** Fecha de expiración del token en milisegundos (epoch) */
-  expiresAt: number
+  expiraEn: number
 }
 
 export interface AuthContextValue {
-  user: User | null
+  usuario: User | null
   token: string | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (credentials: LoginCredentials) => Promise<void>
-  logout: () => void
+  autenticado: boolean
+  cargando: boolean
+  iniciarSesion: (credentials: LoginCredentials) => Promise<void>
+  cerrarSesion: () => void
 }

@@ -15,8 +15,8 @@ interface LoginFormProps {
 type Field = keyof LoginErrors
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
-  const { login, isLoading } = useAuth()
-  const [form, setForm] = useState<LoginCredentials>({ username: '', password: '', remember: false })
+  const { iniciarSesion: login, cargando: isLoading } = useAuth()
+  const [form, setForm] = useState<LoginCredentials>({ usuario: '', clave: '', recordar: false })
   const [errors, setErrors] = useState<LoginErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const usernameRef = useRef<HTMLInputElement>(null)
@@ -39,11 +39,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     e.preventDefault()
     const validation = validateLogin(form)
     setErrors(validation)
-    if (validation.username) return usernameRef.current?.focus()
-    if (validation.password) return passwordRef.current?.focus()
+    if (validation.usuario) return usernameRef.current?.focus()
+    if (validation.clave) return passwordRef.current?.focus()
 
     try {
-      await login({ ...form, username: form.username.trim() })
+      await login({ ...form, usuario: form.usuario.trim() })
       onSuccess()
     } catch (error) {
       setServerError(getApiErrorMessage(error, 'No fue posible iniciar sesión'))
@@ -61,7 +61,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       <Input
         ref={usernameRef}
         label="Usuario"
-        name="username"
+        name="usuario"
         icon={User}
         placeholder="Ej. jperez"
         autoComplete="username"
@@ -69,34 +69,34 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="next"
-        value={form.username}
+        value={form.usuario}
         onChange={handleChange}
         onBlur={handleBlur}
-        error={errors.username}
+        error={errors.usuario}
         disabled={isLoading}
       />
 
       <Input
         ref={passwordRef}
         label="Contraseña"
-        name="password"
+        name="clave"
         type="password"
         icon={Lock}
         placeholder="Tu contraseña"
         autoComplete="current-password"
         enterKeyHint="go"
-        value={form.password}
+        value={form.clave}
         onChange={handleChange}
         onBlur={handleBlur}
-        error={errors.password}
+        error={errors.clave}
         disabled={isLoading}
       />
 
       <label className="flex h-touch cursor-pointer items-center gap-3 text-base text-foreground select-none">
         <input
           type="checkbox"
-          name="remember"
-          checked={form.remember}
+          name="recordar"
+          checked={form.recordar}
           onChange={handleChange}
           className="size-5 cursor-pointer rounded accent-primary"
         />

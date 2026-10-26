@@ -5,11 +5,11 @@ import { formatWeight } from '@/utils/format'
 /** Datos del pallet verificado */
 export function PalletSummary({ pallet }: { pallet: Pallet }) {
   const rows = [
-    { label: 'Bultos', value: pallet.packages.toString() },
-    { label: 'Peso', value: formatWeight(pallet.weight) },
-    { label: 'Estado', value: pallet.status },
-    { label: 'Almacén', value: pallet.warehouse },
-    { label: 'Ubicación', value: pallet.location },
+    { label: 'Bultos', value: pallet.bultos.toString() },
+    { label: 'Peso', value: formatWeight(pallet.peso) },
+    { label: 'Estado', value: pallet.estado },
+    { label: 'Almacén', value: pallet.almacen },
+    { label: 'Ubicación', value: pallet.ubicacion },
   ]
 
   return (
@@ -18,7 +18,7 @@ export function PalletSummary({ pallet }: { pallet: Pallet }) {
         <CheckCircle2 aria-hidden className="size-6 shrink-0 text-success" />
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.15em] text-muted-foreground uppercase">Pallet verificado</p>
-          <p className="font-mono text-xl font-bold tracking-wider">{pallet.code}</p>
+          <p className="font-mono text-xl font-bold tracking-wider">{pallet.codigo}</p>
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-px bg-border">

@@ -1,6 +1,6 @@
 import { Package } from 'lucide-react'
 import type { Pallet } from '@/interfaces/pallet.interface'
-import { formatWeight } from '@/utils/format'
+import { formatCount, formatWeight } from '@/utils/format'
 
 interface PalletChipProps {
   pallet: Pallet
@@ -15,9 +15,9 @@ export function PalletChip({ pallet, articleCode, articleDescription }: PalletCh
     <div className="rounded-lg border border-border bg-card px-3 py-2">
       <div className="flex items-center gap-3">
         <Package aria-hidden className="size-5 shrink-0 text-primary" />
-        <span className="font-mono font-bold tracking-wider">{pallet.code}</span>
+        <span className="font-mono font-bold tracking-wider">{pallet.codigo}</span>
         <span className="ml-auto text-sm whitespace-nowrap text-muted-foreground">
-          {pallet.packages} bultos · {formatWeight(pallet.weight)}
+          {formatCount(pallet.bultos)} bultos · {formatWeight(pallet.peso)}
         </span>
       </div>
       {articleCode && (

@@ -1,23 +1,33 @@
 import { axiosClient } from '@/api/axiosClient'
 import type { ApiLoginResponse, LoginCredentials, LoginResult } from '@/interfaces/auth.interface'
 
+/** Respuesta de /login o /refresh (mismo formato) → sesión de la app */
+function toLoginResult(data: ApiLoginResponse, errorMessage: string): LoginResult {
+  if (!data.success || !data.accessToken) throw new Error(errorMessage)
+
+  return {
+    token: data.accessToken,
+    expiraEn: Date.now() + data.expiresIn * 1000,
+    usuario: {
+      usuario: data.data.codUsr,
+      nombre: data.data.nombre,
+      perfil: data.data.perfil,
+    },
+  }
+}
+
 export const authService = {
-  async login({ username, password }: LoginCredentials): Promise<LoginResult> {
+  async login({ usuario: username, clave: password }: LoginCredentials): Promise<LoginResult> {
     const { data } = await axiosClient.post<ApiLoginResponse>('/login', {
       usuario: username,
       clave: password,
     })
+    return toLoginResult(data, 'No fue posible iniciar sesión')
+  },
 
-    if (!data.success || !data.access_token) throw new Error('No fue posible iniciar sesión')
-
-    return {
-      token: data.access_token,
-      expiresAt: Date.now() + data.expires_in * 1000,
-      user: {
-        username: data.data.COD_USR,
-        fullName: data.data.NOMBRE,
-        profile: data.data.PERFIL,
-      },
-    }
+  /** Renueva el token vigente (la API identifica al usuario por el propio token) */
+  async refresh(): Promise<LoginResult> {
+    const { data } = await axiosClient.post<ApiLoginResponse>('/refresh')
+    return toLoginResult(data, 'No fue posible renovar la sesión')
   },
 }

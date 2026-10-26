@@ -1,7 +1,7 @@
 import { ListPlus, Package, Trash2 } from 'lucide-react'
 import type { Matrix } from '@/interfaces/almacen.interface'
 import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
-import { formatWeight } from '@/utils/format'
+import { formatCount, formatWeight } from '@/utils/format'
 import { excludedLines, validateValeLine, valeTotals } from '@/utils/vale'
 import { ValeItemCard } from './ValeItemCard'
 
@@ -12,7 +12,7 @@ interface ValePalletSectionProps {
   editable: boolean
   /** Pallet inicial: no se quita y debe conservar al menos un ítem */
   isInitial: boolean
-  onLineChange: (index: number, changes: Partial<Pick<ValeLine, 'packages' | 'extraKg'>>) => void
+  onLineChange: (index: number, changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
   onRemoveLine?: (item: string) => void
   onAddItems?: () => void
   /** Solo los pallets agregados se pueden quitar */
@@ -30,9 +30,9 @@ export function ValePalletSection({
   onAddItems,
   onRemove,
 }: ValePalletSectionProps) {
-  const { pallet, lines } = group
+  const { pallet, lineas: lines } = group
   const totals = valeTotals(lines)
-  const headingId = `pallet-${pallet.code}`
+  const headingId = `pallet-${pallet.codigo}`
   const excludedCount = excludedLines(group).length
   const lastOfInitial = isInitial && lines.length === 1
 
@@ -41,18 +41,18 @@ export function ValePalletSection({
       <div className="flex items-center gap-2 rounded-lg bg-primary-hover py-1 pr-1 pl-3 text-on-primary">
         <Package aria-hidden className="size-5 shrink-0" />
         <h2 id={headingId} className="font-mono text-base font-bold tracking-wider text-on-primary">
-          {pallet.code}
+          {pallet.codigo}
         </h2>
         <span className="ml-auto text-sm whitespace-nowrap text-white/90">
           {lines.length}
-          {editable && group.pool.length > lines.length && ` de ${group.pool.length}`}{' '}
-          {group.pool.length === 1 ? 'ítem' : 'ítems'}
+          {editable && group.disponibles.length > lines.length && ` de ${group.disponibles.length}`}{' '}
+          {group.disponibles.length === 1 ? 'ítem' : 'ítems'}
         </span>
         {onRemove ? (
           <button
             type="button"
             onClick={onRemove}
-            aria-label={`Quitar pallet ${pallet.code}`}
+            aria-label={`Quitar pallet ${pallet.codigo}`}
             className="grid size-touch shrink-0 place-items-center rounded-md transition-colors duration-150 hover:bg-white/15 active:bg-white/15"
           >
             <Trash2 aria-hidden className="size-5" />
@@ -71,7 +71,7 @@ export function ValePalletSection({
           <ValeItemCard
             key={line.item}
             line={line}
-            matrixCode={matrix?.code ?? null}
+            matrixCode={matrix?.codigo ?? null}
             editable={editable}
             errors={editable ? validateValeLine(line) : undefined}
             onChange={(changes) => onLineChange(index, changes)}
@@ -95,7 +95,7 @@ export function ValePalletSection({
       <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2 text-sm">
         <span className="font-semibold">Total pallet</span>
         <span className="font-mono font-bold">
-          {totals.packages} bultos · {formatWeight(totals.weight)}
+          {formatCount(totals.packages)} bultos · {formatWeight(totals.weight)}
         </span>
       </div>
     </section>

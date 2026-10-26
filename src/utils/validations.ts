@@ -2,13 +2,13 @@ import type { LoginCredentials } from '@/interfaces/auth.interface'
 import type { MovementKind } from '@/interfaces/movimiento.interface'
 import type { Pallet } from '@/interfaces/pallet.interface'
 
-export type LoginErrors = Partial<Record<'username' | 'password', string>>
+export type LoginErrors = Partial<Record<'usuario' | 'clave', string>>
 
-export function validateLogin({ username, password }: LoginCredentials): LoginErrors {
+export function validateLogin({ usuario, clave }: LoginCredentials): LoginErrors {
   const errors: LoginErrors = {}
 
-  if (!username.trim()) errors.username = 'Ingresa tu usuario'
-  if (!password) errors.password = 'Ingresa tu contraseña'
+  if (!usuario.trim()) errors.usuario = 'Ingresa tu usuario'
+  if (!clave) errors.clave = 'Ingresa tu contraseña'
 
   return errors
 }
@@ -28,7 +28,7 @@ export const PALLET_CODE_LENGTH = 10
  * - En cualquier otro caso → solo ingreso
  */
 export function getAllowedMovementKind(pallet: Pallet): MovementKind {
-  return pallet.warehouse && pallet.location ? 'SAL' : 'ING'
+  return pallet.almacen && pallet.ubicacion ? 'SAL' : 'ING'
 }
 
 export function validatePalletCode(code: string): string | undefined {

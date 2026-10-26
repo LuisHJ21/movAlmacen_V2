@@ -1,4 +1,3 @@
-import { useState, type FormEvent } from 'react'
 import { OptionList, type OptionItem } from '@/components/ui/OptionList'
 import { useReferences } from '@/hooks/useReferences'
 import type { ReferenceDocument } from '@/interfaces/almacen.interface'
@@ -7,10 +6,9 @@ import type { Pallet } from '@/interfaces/pallet.interface'
 import { formatQuantity, toSentenceCase } from '@/utils/format'
 import { MovementChip } from './MovementChip'
 import { PalletChip } from './PalletChip'
-import { StepFooter } from './StepFooter'
 
 /** Una orden puede venir repetida con distinto NRO_MOV */
-export const referenceKey = (r: ReferenceDocument) => `${r.orderNumber}-${r.movementNumber}`
+export const referenceKey = (r: ReferenceDocument) => `${r.nroOrden}-${r.nroMov}`
 
 interface ReferenceStepProps {
   pallet: Pallet
@@ -23,52 +21,48 @@ interface ReferenceStepProps {
 /**
  * Destino cuando el movimiento requiere documento de referencia (F_REF = 1)
  * y el pallet no trae uno (salidas, o ingresos sin referencia en sus datos).
- * Se consulta con nroDoc vacío para listar los disponibles.
+ * Se consulta con nroDoc vacío para listar los disponibles. Tocar una referencia avanza.
  */
 export function ReferenceStep({ pallet, movement, articleCode, initialReference = null, onConfirm }: ReferenceStepProps) {
   const { references, isLoading, error, reload } = useReferences({
     articleCode,
-    movementCode: movement.code,
+    movementCode: movement.codigo,
     docNumber: '',
   })
-  const [selectedKey, setSelectedKey] = useState<string | null>(
-    initialReference ? referenceKey(initialReference) : null,
-  )
-  const selected = references.find((r) => referenceKey(r) === selectedKey) ?? null
 
   const items: OptionItem[] = references.map((r) => ({
     key: referenceKey(r),
-    badge: r.orderNumber,
-    title: toSentenceCase(r.description),
+    badge: r.nroOrden,
+    title: toSentenceCase(r.descripcion),
     meta: [
-      `${r.docType} ${r.movementNumber}`,
-      r.remaining !== null && `Restante ${formatQuantity(r.remaining)}`,
-      r.warehouse,
+      `${r.tipoDoc} ${r.nroMov}`,
+      r.restante !== null && `Restante ${formatQuantity(r.restante)}`,
+      r.almacen,
     ]
       .filter(Boolean)
       .join(' · '),
-    searchText: r.movementNumber,
+    searchText: r.nroMov,
   }))
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (selected) onConfirm(selected)
+  const handleSelect = (key: string) => {
+    const reference = references.find((r) => referenceKey(r) === key)
+    if (reference) onConfirm(reference)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-2 px-4 pt-4">
         <PalletChip pallet={pallet} articleCode={articleCode} />
         <MovementChip movement={movement} />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4">
         <OptionList
           legend="Documento de referencia"
           name="reference"
           items={items}
-          selectedKey={selectedKey}
-          onSelect={setSelectedKey}
+          selectedKey={initialReference ? referenceKey(initialReference) : null}
+          onSelect={handleSelect}
           isLoading={isLoading}
           error={error}
           onRetry={() => void reload()}
@@ -78,8 +72,6 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
           searchPlaceholder="Buscar orden o descripción"
         />
       </div>
-
-      <StepFooter disabled={!selected} />
-    </form>
+    </div>
   )
 }
