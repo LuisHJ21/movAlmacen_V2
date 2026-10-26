@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import { Loader2 } from 'lucide-react'
 
 type Variant = 'primary' | 'secondary' | 'ghost'
@@ -8,6 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean
   fullWidth?: boolean
   icon?: ReactNode
+  ref?: Ref<HTMLButtonElement>
 }
 
 const variants: Record<Variant, string> = {

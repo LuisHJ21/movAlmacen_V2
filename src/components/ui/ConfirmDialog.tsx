@@ -13,6 +13,10 @@ interface ConfirmDialogProps {
   confirmIcon?: ReactNode
   onConfirm: () => void
   onCancel: () => void
+  /** Aviso con un solo botón (confirmLabel); Escape o tocar fuera también lo cierran con onCancel */
+  hideCancel?: boolean
+  /** destructive: icono en rojo (ej. validación fallida) */
+  tone?: 'primary' | 'destructive'
 }
 
 /**
@@ -29,14 +33,17 @@ export function ConfirmDialog({
   confirmIcon,
   onConfirm,
   onCancel,
+  hideCancel = false,
+  tone = 'primary',
 }: ConfirmDialogProps) {
   const titleId = useId()
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const confirmRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
     const previous = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
+    ;(hideCancel ? confirmRef : cancelRef).current?.focus()
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
     }
@@ -45,7 +52,7 @@ export function ConfirmDialog({
       document.removeEventListener('keydown', handleKey)
       previous?.focus()
     }
-  }, [open, onCancel])
+  }, [open, onCancel, hideCancel])
 
   if (!open) return null
 
@@ -64,7 +71,11 @@ export function ConfirmDialog({
       >
         <div className="flex items-start gap-3">
           {Icon && (
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+            <span
+              className={`grid size-11 shrink-0 place-items-center rounded-full ${
+                tone === 'destructive' ? 'bg-destructive-soft text-destructive' : 'bg-primary-soft text-primary'
+              }`}
+            >
               <Icon aria-hidden className="size-6" />
             </span>
           )}
@@ -73,16 +84,18 @@ export function ConfirmDialog({
           </h2>
         </div>
         {children && <div className="mt-3">{children}</div>}
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            ref={cancelRef}
-            type="button"
-            onClick={onCancel}
-            className="inline-flex h-touch items-center justify-center rounded-lg border-2 border-border-strong bg-card px-3 font-heading font-semibold text-foreground transition-colors duration-150 hover:bg-muted active:bg-muted"
-          >
-            {cancelLabel}
-          </button>
-          <Button onClick={onConfirm} icon={confirmIcon} className="px-3">
+        <div className={`mt-5 grid gap-2 ${hideCancel ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {!hideCancel && (
+            <button
+              ref={cancelRef}
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-touch items-center justify-center rounded-lg border-2 border-border-strong bg-card px-3 font-heading font-semibold text-foreground transition-colors duration-150 hover:bg-muted active:bg-muted"
+            >
+              {cancelLabel}
+            </button>
+          )}
+          <Button ref={confirmRef} onClick={onConfirm} icon={confirmIcon} className="px-3">
             {confirmLabel}
           </Button>
         </div>

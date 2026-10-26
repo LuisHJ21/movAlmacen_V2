@@ -10,9 +10,10 @@ import HistorialValesPage from '@/pages/HistorialValesPage'
 import DetalleValePage from '@/pages/DetalleValePage'
 import DetallePalletPage from '@/pages/DetallePalletPage'
 import AsignarUbicacionPage from '@/pages/AsignarUbicacionPage'
+import TransferenciaAlmacenPage from '@/pages/TransferenciaAlmacenPage'
 
 /** Rutas del menú que ya tienen página propia */
-const builtPaths = ['/generar-vale', '/historial-vales', '/detalle-pallet', '/asignar-ubicacion']
+const builtPaths = ['/generar-vale', '/historial-vales', '/detalle-pallet', '/asignar-ubicacion', '/transferencia-almacen']
 
 /** Solo usuarios autenticados; si no, redirige al login recordando la ruta */
 function ProtectedRoute() {
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/historial-vales/:valeNumber" element={<DetalleValePage />} />
             <Route path="/detalle-pallet" element={<DetallePalletPage />} />
             <Route path="/asignar-ubicacion" element={<AsignarUbicacionPage />} />
+            <Route path="/transferencia-almacen" element={<TransferenciaAlmacenPage />} />
             {/* Opciones aún sin página */}
             {menuOptions
               .filter(({ path }) => !builtPaths.includes(path))

@@ -112,7 +112,8 @@ interface BuildValeRequestParams {
   formId: string
   movement: Movement
   articleCode: string
-  matrixCode: string
+  /** null si el movimiento no contabiliza (no lleva matriz) */
+  matrixCode: string | null
   /** Almacén del vale (elegido directo o el de la referencia) */
   warehouseCode: string | null
   reference: ReferenceDocument | null
@@ -153,7 +154,7 @@ export function buildValeRequest({
         },
         codArt: articleCode,
         peso: String(lineWeight(line)),
-        matriz: matrixCode,
+        matriz: matrixCode ?? '',
         lote: line.lote,
       })),
     ),

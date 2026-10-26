@@ -65,7 +65,7 @@ const stepTitles: Record<Step, string> = {
 
 /**
  * Flujo de Generar vale:
- * escanear → artículo (si hay varios) → movimiento → matriz (si hay varias)
+ * escanear → artículo (si hay varios) → movimiento → matriz (solo si el movimiento contabiliza; si hay varias)
  * → almacén (fRef=0) | referencia (fRef=1; en ingresos viene del pallet) → resumen
  * En salidas: se eligen los ítems de cada pallet (si tiene más de uno), se pueden quitar ítems,
  * volver a agregar los excluidos y agregar más pallets del mismo artículo y almacén.
@@ -362,18 +362,18 @@ export default function GenerarValePage() {
     goTo('reference')
   }
 
-  // Paso movimiento: consultar matriz y datos del pallet
+  // Paso movimiento: consultar datos del pallet y, si el movimiento contabiliza (F_CONTABILIZA = 1), la matriz
   const handleMovement = async (selected: Movement) => {
     if (!pallet || !articleCode) return
     setIsPreparing(true)
     setPrepareError(undefined)
     try {
       const [foundMatrices, data] = await Promise.all([
-        almacenService.getMatrices(selected.codigo, articleCode),
+        selected.contabiliza ? almacenService.getMatrices(selected.codigo, articleCode) : Promise.resolve([]),
         palletService.getData(pallet.codigo, selected.codigo, articleCode),
       ])
 
-      if (foundMatrices.length === 0) {
+      if (selected.contabiliza && foundMatrices.length === 0) {
         setPrepareError(`No hay matriz contable para ${selected.codigo} con el artículo ${articleCode}. Elige otro movimiento.`)
         return
       }
@@ -383,15 +383,20 @@ export default function GenerarValePage() {
       setMatrices(foundMatrices)
       setPalletData(data)
 
-      // Una sola matriz: se elige automáticamente
-      if (foundMatrices.length === 1) {
-        setMatrix(foundMatrices[0])
+      // Sin contabilizar no hay matriz; con una sola matriz se elige automáticamente
+      if (!selected.contabiliza || foundMatrices.length === 1) {
+        setMatrix(foundMatrices[0] ?? null)
         goToDestination(selected, data)
       } else {
         goTo('matrix')
       }
     } catch (error) {
-      setPrepareError(getApiErrorMessage(error, 'No fue posible consultar la matriz'))
+      setPrepareError(
+        getApiErrorMessage(
+          error,
+          selected.contabiliza ? 'No fue posible consultar la matriz' : 'No fue posible consultar los datos del pallet',
+        ),
+      )
     } finally {
       setIsPreparing(false)
     }
@@ -426,7 +431,8 @@ export default function GenerarValePage() {
 
   // Guardar: POST /vale con un detalle por ítem incluido
   const handleSave = async () => {
-    if (!canSave || isSaving || !movement || !articleCode || !matrix || !user) return
+    if (!canSave || isSaving || !movement || !articleCode || !user) return
+    if (movement.contabiliza && !matrix) return
     setIsSaving(true)
     setSaveNotice(undefined)
     try {
@@ -436,7 +442,7 @@ export default function GenerarValePage() {
           formId,
           movement,
           articleCode,
-          matrixCode: matrix.codigo,
+          matrixCode: matrix?.codigo ?? null,
           warehouseCode: valeWarehouse,
           reference,
           username: user.usuario,

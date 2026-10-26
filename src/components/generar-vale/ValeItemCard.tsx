@@ -111,7 +111,7 @@ export function ValeItemCard({
           </div>
           <div className="pl-2.5">
             <Field Icon={Layers} label="Matriz">
-              {matrixCode ?? '—'}
+              {matrixCode ?? 'No aplica'}
             </Field>
           </div>
         </div>
