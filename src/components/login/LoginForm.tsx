@@ -51,7 +51,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5" autoComplete='off'>
       {serverError && (
         <Alert type="error" onClose={() => setServerError(null)}>
           {serverError}
@@ -63,8 +63,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         label="Usuario"
         name="usuario"
         icon={User}
-        placeholder="Ej. jperez"
-        autoComplete="username"
+        placeholder="usuario"
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -82,8 +81,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         name="clave"
         type="password"
         icon={Lock}
-        placeholder="Tu contraseña"
-        autoComplete="current-password"
+        placeholder="**********"
         enterKeyHint="go"
         value={form.clave}
         onChange={handleChange}
@@ -100,16 +98,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           onChange={handleChange}
           className="size-5 cursor-pointer rounded accent-primary"
         />
-        Recordarme en este equipo
+        Recuerdame
       </label>
 
       <Button type="submit" fullWidth isLoading={isLoading} icon={<LogIn aria-hidden className="size-5" />}>
         {isLoading ? 'Ingresando…' : 'Iniciar sesión'}
       </Button>
-
-      <p className="text-center text-sm text-muted-foreground">
-        ¿Olvidaste tu contraseña? Contacta a tu supervisor.
-      </p>
     </form>
   )
 }
