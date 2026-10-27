@@ -111,11 +111,6 @@ export function PalletTransferCard({ pallet, mantieneUbicacion = false, nuevaUbi
             <MapPin aria-hidden className="size-4 text-primary" />
             Ubicación actual
             {pallet.almacen && <span className="font-mono">· {pallet.almacen}</span>}
-            {mantieneUbicacion && (
-              <span className="ml-auto rounded-md bg-primary-soft px-1.5 py-0.5 text-[0.6875rem] font-bold text-primary-hover">
-                Se mantiene
-              </span>
-            )}
           </p>
           <CodigoUbicacion codigo={pallet.ubicacion} variant="soft" />
         </div>
