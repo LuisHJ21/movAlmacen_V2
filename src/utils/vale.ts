@@ -89,6 +89,10 @@ export function palletInWarehouse(palletWarehouse: string | null, valeWarehouse:
   return (palletWarehouse ?? '').trim().toUpperCase() === valeWarehouse
 }
 
+/** Salidas con referencia: el pallet debe estar en el almacén donde está proyectada la referencia */
+export const referenceMatchesPallet = (reference: ReferenceDocument, pallet: { almacen: string | null }) =>
+  palletInWarehouse(pallet.almacen, getValeWarehouse(null, reference))
+
 /** Ítems del pallet que no están en el vale (ordenados como en el pallet) */
 export const excludedLines = (group: ValePalletGroup) =>
   group.disponibles.filter((p) => !group.lineas.some((l) => l.item === p.item))

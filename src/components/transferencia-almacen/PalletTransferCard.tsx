@@ -16,8 +16,6 @@ interface NuevaUbicacion {
 
 interface PalletTransferCardProps {
   pallet: Pallet
-  /** La ubicación se conserva tras la transferencia (tipo = 1) */
-  mantieneUbicacion?: boolean
   /** Ubicación elegida en el destino: se muestra al lado de la actual */
   nuevaUbicacion?: NuevaUbicacion
 }
@@ -52,7 +50,7 @@ function Columna({ titulo, icono, children }: { titulo: string; icono: ReactNode
  * Pallet a transferir con su ubicación actual. Con nuevaUbicacion, la actual y la nueva se muestran
  * lado a lado (actual → nueva); sin ella, la actual va completa por partes.
  */
-export function PalletTransferCard({ pallet, mantieneUbicacion = false, nuevaUbicacion }: PalletTransferCardProps) {
+export function PalletTransferCard({ pallet, nuevaUbicacion }: PalletTransferCardProps) {
   return (
     <section aria-label={`Pallet ${pallet.codigo}`} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center gap-3 px-3 py-2.5">

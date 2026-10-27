@@ -323,7 +323,6 @@ export default function TransferenciaAlmacenPage() {
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pt-4 pb-4">
           <PalletTransferCard
             pallet={pallet}
-            mantieneUbicacion={tipo === '1'}
             nuevaUbicacion={
               requiereUbicacion && selector.completo
                 ? { codigo: selector.codigo, almacen: destino.codigo, multiple: selector.multiple, onCambiar: goBack }

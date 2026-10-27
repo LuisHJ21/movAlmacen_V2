@@ -4,6 +4,8 @@ import type { ReferenceDocument } from '@/interfaces/almacen.interface'
 import type { Movement } from '@/interfaces/movimiento.interface'
 import type { Pallet } from '@/interfaces/pallet.interface'
 import { formatQuantity, toSentenceCase } from '@/utils/format'
+import { referenceMatchesPallet } from '@/utils/vale'
+import { Alert } from '@/components/ui/Alert'
 import { MovementChip } from './MovementChip'
 import { PalletChip } from './PalletChip'
 
@@ -30,6 +32,11 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
     docNumber: '',
   })
 
+  // Salida: el pallet debe estar en el almacén donde está proyectada la referencia
+  const esSalida = movement.tipo === 'SAL'
+  const fueraDeAlmacen = (r: ReferenceDocument) => esSalida && !referenceMatchesPallet(r, pallet)
+  const bloqueadas = references.filter(fueraDeAlmacen).length
+
   const items: OptionItem[] = references.map((r) => ({
     key: referenceKey(r),
     badge: r.nroOrden,
@@ -37,16 +44,17 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
     meta: [
       `${r.tipoDoc} ${r.nroMov}`,
       r.restante !== null && `Restante ${formatQuantity(r.restante)}`,
-      r.almacen,
+      fueraDeAlmacen(r) ? `Otro almacén (${r.almacen})` : r.almacen,
     ]
       .filter(Boolean)
       .join(' · '),
     searchText: r.nroMov,
+    disabled: fueraDeAlmacen(r),
   }))
 
   const handleSelect = (key: string) => {
     const reference = references.find((r) => referenceKey(r) === key)
-    if (reference) onConfirm(reference)
+    if (reference && !fueraDeAlmacen(reference)) onConfirm(reference)
   }
 
   return (
@@ -54,6 +62,15 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
       <div className="space-y-2 px-4 pt-4">
         <PalletChip pallet={pallet} articleCode={articleCode} />
         <MovementChip movement={movement} />
+        {esSalida && !isLoading && !error && bloqueadas > 0 && (
+          <Alert type={bloqueadas === references.length ? 'error' : 'info'}>
+            {pallet.almacen
+              ? bloqueadas === references.length
+                ? `Ninguna referencia está proyectada en ${pallet.almacen}, el almacén del pallet.`
+                : `Solo puedes elegir referencias proyectadas en ${pallet.almacen}, el almacén del pallet.`
+              : 'El pallet no tiene almacén asignado: no puede salir con referencia.'}
+          </Alert>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4">

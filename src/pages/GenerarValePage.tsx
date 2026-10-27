@@ -38,6 +38,7 @@ import {
   isValeLineValid,
   mergeLines,
   palletInWarehouse,
+  referenceMatchesPallet,
 } from '@/utils/vale'
 
 type Step =
@@ -441,6 +442,8 @@ export default function GenerarValePage() {
   }
 
   const handleReference = (selected: ReferenceDocument) => {
+    // Salida: la referencia debe estar proyectada en el almacén del pallet (ReferenceStep ya bloquea las demás)
+    if (movement?.tipo === 'SAL' && pallet && !referenceMatchesPallet(selected, pallet)) return
     setReference(selected)
     setReferenceFromPallet(false)
     if (movement && palletData) openSummary(movement, palletData, selected, null)
