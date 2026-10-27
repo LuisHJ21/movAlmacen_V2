@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Save, X } from 'lucide-react'
+import { Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react'
 import { ValeSaved } from '@/components/generar-vale/ValeSaved'
 import { useAuth } from '@/hooks/useAuth'
 import { isAxiosError } from 'axios'
@@ -279,11 +279,16 @@ export default function GenerarValePage() {
     }
   }
 
-  const removePallet = (palletCode: string) => {
-    if (window.confirm(`¿Quitar el pallet ${palletCode} del vale?`)) {
-      setGroups((current) => current.filter((g) => g.pallet.codigo !== palletCode))
-    }
+  // Pallet por quitar, pendiente de confirmación (ultimoItem: se pidió quitar su último ítem)
+  const [palletToRemove, setPalletToRemove] = useState<{ palletCode: string; ultimoItem?: string } | null>(null)
+  const closeRemovePallet = useCallback(() => setPalletToRemove(null), [])
+  const confirmRemovePallet = () => {
+    if (!palletToRemove) return
+    setGroups((current) => current.filter((g) => g.pallet.codigo !== palletToRemove.palletCode))
+    setPalletToRemove(null)
   }
+
+  const removePallet = (palletCode: string) => setPalletToRemove({ palletCode })
 
   // Quitar un ítem: vuelve a quedar disponible en "Agregar ítems".
   // En un pallet agregado, quitar su último ítem quita el pallet.
@@ -293,9 +298,7 @@ export default function GenerarValePage() {
     const isInitial = groups[0]?.pallet.codigo === palletCode
     if (group.lineas.length === 1) {
       if (isInitial) return
-      if (window.confirm(`Es el último ítem del pallet ${palletCode}. ¿Quitar el pallet del vale?`)) {
-        setGroups((current) => current.filter((g) => g.pallet.codigo !== palletCode))
-      }
+      setPalletToRemove({ palletCode, ultimoItem: item })
       return
     }
     setGroups((current) =>
@@ -353,9 +356,9 @@ export default function GenerarValePage() {
   }
 
   // Cancelar: descarta todo lo avanzado y vuelve al inicio
-  const confirmCancel = () => {
-    if (window.confirm('¿Cancelar este vale? Se perderá lo que llevas avanzado.')) navigate('/')
-  }
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
+  const closeConfirmCancel = useCallback(() => setConfirmCancelOpen(false), [])
+  const confirmCancel = () => setConfirmCancelOpen(true)
 
   const openAddPallet = () => {
     setAddError(undefined)
@@ -646,6 +649,75 @@ export default function GenerarValePage() {
           </div>
         </div>
       )}
+
+      {/* Quitar un pallet agregado (o su último ítem, que lo quita del vale) */}
+      <ConfirmDialog
+        open={!!palletToRemove}
+        title={palletToRemove?.ultimoItem ? 'Es el último ítem del pallet' : '¿Quitar el pallet del vale?'}
+        Icon={Trash2}
+        tone="destructive"
+        destructiveConfirm
+        confirmLabel="Sí, quitar"
+        cancelLabel="Conservar"
+        confirmIcon={<Trash2 aria-hidden className="size-5" />}
+        onCancel={closeRemovePallet}
+        onConfirm={confirmRemovePallet}
+      >
+        {palletToRemove &&
+          (() => {
+            const group = groups.find((g) => g.pallet.codigo === palletToRemove.palletCode)
+            const lineTotals = valeTotals(group?.lineas ?? [])
+            return (
+              <div className="space-y-2">
+                {palletToRemove.ultimoItem && (
+                  <p className="text-muted-foreground">
+                    Si quitas el ítem <span className="font-semibold text-foreground">#{palletToRemove.ultimoItem}</span>, el
+                    pallet queda sin ítems y sale del vale.
+                  </p>
+                )}
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
+                  <span className="font-mono font-bold">{palletToRemove.palletCode}</span>
+                  <span className="font-mono text-muted-foreground">
+                    {group?.lineas.length ?? 0} {group?.lineas.length === 1 ? 'ítem' : 'ítems'} · {formatWeight(lineTotals.weight)}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">Podrás volver a agregarlo con “Agregar pallet”.</p>
+              </div>
+            )
+          })()}
+      </ConfirmDialog>
+
+      {/* Cancelar: descarta todo lo avanzado y vuelve al inicio */}
+      <ConfirmDialog
+        open={confirmCancelOpen}
+        title="¿Cancelar este vale?"
+        Icon={TriangleAlert}
+        tone="destructive"
+        destructiveConfirm
+        confirmLabel="Sí, cancelar"
+        cancelLabel="Seguir editando"
+        confirmIcon={<X aria-hidden className="size-5" />}
+        onCancel={closeConfirmCancel}
+        onConfirm={() => navigate('/')}
+      >
+        <p className="text-muted-foreground">
+          Se perderá lo que llevas avanzado
+          {pallet && (
+            <>
+              {' '}
+              del pallet <span className="font-mono font-semibold text-foreground">{pallet.codigo}</span>
+            </>
+          )}
+          {allLines.length > 0 && (
+            <>
+              {' '}
+              ({groups.length} {groups.length === 1 ? 'pallet' : 'pallets'}, {allLines.length}{' '}
+              {allLines.length === 1 ? 'ítem' : 'ítems'})
+            </>
+          )}
+          . No se guardará nada.
+        </p>
+      </ConfirmDialog>
 
       {/* Confirmación antes de registrar el vale */}
       <ConfirmDialog

@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   hideCancel?: boolean
   /** destructive: icono en rojo (ej. validación fallida) */
   tone?: 'primary' | 'destructive'
+  /** Botón de confirmar en rojo para acciones que descartan algo (ej. cancelar un vale) */
+  destructiveConfirm?: boolean
 }
 
 /**
@@ -35,6 +37,7 @@ export function ConfirmDialog({
   onCancel,
   hideCancel = false,
   tone = 'primary',
+  destructiveConfirm = false,
 }: ConfirmDialogProps) {
   const titleId = useId()
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -95,7 +98,13 @@ export function ConfirmDialog({
               {cancelLabel}
             </button>
           )}
-          <Button ref={confirmRef} onClick={onConfirm} icon={confirmIcon} className="px-3">
+          <Button
+            ref={confirmRef}
+            variant={destructiveConfirm ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            icon={confirmIcon}
+            className="px-3"
+          >
             {confirmLabel}
           </Button>
         </div>
