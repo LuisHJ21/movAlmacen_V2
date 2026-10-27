@@ -1,13 +1,13 @@
 import type { ValeDetailLine } from '@/interfaces/vale.interface'
-import { formatQuantity, NUMBER_LOCALE, toSentenceCase } from '@/utils/format'
+import { formatQuantity,  toSentenceCase } from '@/utils/format'
 
-const priceFormatter = new Intl.NumberFormat(NUMBER_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+// const priceFormatter = new Intl.NumberFormat(NUMBER_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
 /** Línea del detalle de un vale registrado: artículo, cantidad y datos contables (solo los que vienen) */
 export function ValeDetailLineCard({ line }: { line: ValeDetailLine }) {
   const fields: Array<[string, string]> = [
     ['Matriz', line.matriz],
-    ['Precio unit.', line.precioUnitario ? priceFormatter.format(line.precioUnitario) : ''],
+   // ['Precio unit.', line.precioUnitario ? priceFormatter.format(line.precioUnitario) : ''],
     ['Centro de costo', line.centroCosto],
     ['Cta. presupuestal', line.cuentaPresupuestal],
   ].filter((field): field is [string, string] => !!field[1])

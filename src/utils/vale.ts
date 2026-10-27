@@ -172,6 +172,8 @@ export function buildValeRequest({
         matriz: matrixCode ?? '',
         lote: line.lote,
         planDiario: line.planDiario?.codigo ?? '',
+        item:line.item,
+        pallet:line.codPallet
       })),
     ),
   }
