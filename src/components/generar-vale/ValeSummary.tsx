@@ -21,6 +21,8 @@ interface ValeSummaryProps {
   /** Salidas: quitar un ítem / volver a agregar ítems excluidos de un pallet */
   onRemoveLine?: (palletCode: string, item: string) => void
   onAddItems?: (palletCode: string) => void
+  /** Solo si el movimiento solicita plan diario */
+  onPickPlan?: (palletCode: string, item: string) => void
 }
 
 /** Resumen del vale: cabecera general + detalle por cada pallet */
@@ -36,6 +38,7 @@ export function ValeSummary({
   onRemovePallet,
   onRemoveLine,
   onAddItems,
+  onPickPlan,
 }: ValeSummaryProps) {
   // Solo las salidas permiten ajustar bultos y kg adicionales
   const editable = movement.tipo === 'SAL'
@@ -55,6 +58,7 @@ export function ValeSummary({
           onLineChange={(lineIndex, changes) => onLineChange(group.pallet.codigo, lineIndex, changes)}
           onRemoveLine={onRemoveLine ? (item) => onRemoveLine(group.pallet.codigo, item) : undefined}
           onAddItems={onAddItems ? () => onAddItems(group.pallet.codigo) : undefined}
+          onPickPlan={onPickPlan ? (item) => onPickPlan(group.pallet.codigo, item) : undefined}
           // El pallet inicial define artículo y movimiento: no se quita
           onRemove={index > 0 && onRemovePallet ? () => onRemovePallet(group.pallet.codigo) : undefined}
         />

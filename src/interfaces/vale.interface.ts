@@ -1,6 +1,7 @@
 import type { MovementKind } from './movimiento.interface'
 import type { ReferenceDocument } from './almacen.interface'
 import type { Pallet } from './pallet.interface'
+import type { PlanDiario } from './planDiario.interface'
 
 /** Línea del detalle del vale (un ítem del pallet) */
 export interface ValeLine {
@@ -17,6 +18,8 @@ export interface ValeLine {
   /** Disponibles en el pallet: tope para las salidas */
   bultosDisponibles: number
   pesoDisponible: number
+  /** Solo si el movimiento solicita plan diario (fSolcitaPlan = '1'); null mientras no se elige */
+  planDiario: PlanDiario | null
 }
 
 /** Pallet incluido en el vale con su detalle */
@@ -52,6 +55,8 @@ export interface ValeDetalleRequest {
   peso: string
   matriz: string
   lote: string
+  /** Código del plan diario del ítem ('' si el movimiento no lo solicita) */
+  planDiario: string
 }
 
 /** Respuesta de POST /vale (claves ya en camelCase, ver utils/mapper). Ej. { success: true, message: "Vale generado correctamente", nroVale: "PA00141961" } */
@@ -62,7 +67,7 @@ export interface ApiValeResponse {
   nroVale?: string
 }
 
-export type ValeLineErrors = Partial<Record<'bultos' | 'kgAdicional' | 'peso', string>>
+export type ValeLineErrors = Partial<Record<'bultos' | 'kgAdicional' | 'peso' | 'planDiario', string>>
 
 /** Respuesta de GET /vale (claves ya en camelCase, ver utils/mapper). La API responde 404 (vale_history_error) si no hay vales. */
 export interface ApiValeHistoryResponse {

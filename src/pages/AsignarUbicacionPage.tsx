@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Layers, MapPin, MapPinned, Undo2, Warehouse as WarehouseIcon, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Layers, MapPin, MapPinned, Undo2, X } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/axiosClient'
 import { CodigoUbicacion } from '@/components/asignar-ubicacion/CodigoUbicacion'
-import { UbicacionGrid } from '@/components/asignar-ubicacion/UbicacionGrid'
+import { SelectorUbicacion } from '@/components/asignar-ubicacion/SelectorUbicacion'
 import { PalletChip } from '@/components/generar-vale/PalletChip'
 import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
 import { Alert } from '@/components/ui/Alert'
@@ -10,27 +11,14 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { OptionList, type OptionItem } from '@/components/ui/OptionList'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { useUbicaciones } from '@/hooks/useUbicaciones'
+import { useSelectorUbicacion } from '@/hooks/useSelectorUbicacion'
 import { useWarehouses } from '@/hooks/useWarehouses'
 import type { Warehouse } from '@/interfaces/almacen.interface'
 import type { Pallet } from '@/interfaces/pallet.interface'
-import type { UbicacionOpcion } from '@/interfaces/ubicacion.interface'
 import { palletService } from '@/services/pallet.service'
 import { formatQuantity, toSentenceCase } from '@/utils/format'
-import { nivelFiltro, PARTES_UBICACION } from '@/utils/ubicacion'
 
 type Step = 'scan' | 'almacen' | 'ubicacion' | 'resumen'
-
-/** Parte elegida del código; auto = se eligió sola por ser la única opción (regresar la salta) */
-interface Eleccion {
-  codigo: string
-  auto: boolean
-  /** Ubicación final multipallet */
-  multiple?: boolean
-}
-
-/** Largo del código armado tras elegir `partes` partes */
-const largoHasta = (partes: number) => PARTES_UBICACION.slice(0, partes).reduce((sum, p) => sum + p.largo, 0)
 
 /**
  * Asignar ubicación: escanear pallet → almacén → código de ubicación → lado → columna → nivel →
@@ -38,17 +26,16 @@ const largoHasta = (partes: number) => PARTES_UBICACION.slice(0, partes).reduce(
  * es dentro del mismo almacén: se omite el paso de almacén.
  */
 export default function AsignarUbicacionPage() {
+  const navigate = useNavigate()
   const [step, setStep] = useState<Step>('scan')
   const [pallet, setPallet] = useState<Pallet>()
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyError, setVerifyError] = useState<string>()
   const [confirmReasignar, setConfirmReasignar] = useState(false)
   const [almacen, setAlmacen] = useState<Warehouse | null>(null)
-  const [elecciones, setElecciones] = useState<Eleccion[]>([])
 
-  const paso = elecciones.length
-  const codigo = elecciones.at(-1)?.codigo ?? ''
-  const parte = PARTES_UBICACION[paso]
+  const selector = useSelectorUbicacion(almacen, step === 'ubicacion')
+  const { paso, codigo, parte } = selector
 
   const { warehouses, isLoading: loadingWarehouses, error: warehousesError, reload: reloadWarehouses } = useWarehouses()
 
@@ -61,34 +48,15 @@ export default function AsignarUbicacionPage() {
     if (step === 'ubicacion' && reasignacion && !almacen && almacenActual) setAlmacen(almacenActual)
   }, [step, reasignacion, almacen, almacenActual])
 
-  // Paso 0 (código): se consultan todos los códigos del almacén juntos ("C1,P1") para ver su disponibilidad
-  const filtro = step === 'ubicacion' && almacen ? (paso === 0 ? almacen.ubicaciones.join(',') : codigo) : ''
-  const { opciones: todas, isLoading, error, reload } = useUbicaciones(filtro, nivelFiltro(paso))
-  // Descarta resultados de la consulta anterior mientras llega la nueva
-  const opciones = todas.filter(
-    (o) =>
-      o.codigo.length === largoHasta(paso + 1) &&
-      (paso === 0 ? almacen?.ubicaciones.includes(o.codigo) : o.codigo.startsWith(codigo)),
-  )
-
-  // Una sola opción con espacio: se elige sola
   useEffect(() => {
-    if (step !== 'ubicacion' || isLoading || error || opciones.length !== 1 || opciones[0].disponibles === 0) return
-    const unica = opciones[0].codigo
-    setElecciones((current) =>
-      current.at(-1)?.codigo === unica ? current : [...current, { codigo: unica, auto: true, multiple: opciones[0].multiple }],
-    )
-  }, [step, isLoading, error, opciones])
-
-  useEffect(() => {
-    if (step === 'ubicacion' && paso === PARTES_UBICACION.length) setStep('resumen')
-  }, [step, paso])
+    if (step === 'ubicacion' && selector.completo) setStep('resumen')
+  }, [step, selector.completo])
 
   const reiniciar = () => {
     setStep('scan')
     setPallet(undefined)
     setAlmacen(null)
-    setElecciones([])
+    selector.reiniciar()
     setVerifyError(undefined)
     setConfirmReasignar(false)
   }
@@ -100,7 +68,7 @@ export default function AsignarUbicacionPage() {
       const verified = await palletService.verify(code)
       setPallet(verified)
       setAlmacen(null)
-      setElecciones([])
+      selector.reiniciar()
       if (verified.ubicacion) setConfirmReasignar(true)
       else setStep('almacen')
     } catch (err) {
@@ -113,36 +81,24 @@ export default function AsignarUbicacionPage() {
   const elegirAlmacen = (code: string) => {
     const warehouse = warehouses.find((w) => w.codigo === code)
     if (!warehouse) return
-    if (warehouse.codigo !== almacen?.codigo) setElecciones([])
+    if (warehouse.codigo !== almacen?.codigo) selector.reiniciar()
     setAlmacen(warehouse)
     setStep('ubicacion')
   }
 
-  const elegirOpcion = (opcion: UbicacionOpcion) => {
-    setElecciones((current) => [...current, { codigo: opcion.codigo, auto: false, multiple: opcion.multiple }])
+  // Tocar una parte ya elegida del código (también desde el resumen) vuelve a ese paso
+  const irAParte = (indice: number) => {
+    selector.irAParte(indice)
+    setStep('ubicacion')
   }
 
   // Regresar quita la última parte elegida a mano junto con las que se eligieron solas después
-  // Tocar una parte ya elegida del código vuelve a ese paso (descarta esa parte y las siguientes)
-  const irAParte = (indice: number) => {
-    setElecciones((current) => current.slice(0, indice))
-    setStep('ubicacion')
-  }
-  const automaticas = elecciones.map((e) => e.auto)
-  const hayEditables = elecciones.some((e) => !e.auto)
-
   const goBack = () => {
     if (step === 'almacen') return reiniciar()
-    const ultimaManual = elecciones.findLastIndex((e) => !e.auto)
-    if (ultimaManual === -1) {
-      // Al reasignar no hay paso de almacén: se vuelve al escaneo
-      if (reasignacion) return reiniciar()
-      setElecciones([])
-      setStep('almacen')
-      return
-    }
-    setElecciones(elecciones.slice(0, ultimaManual))
-    setStep('ubicacion')
+    if (selector.retroceder()) return setStep('ubicacion')
+    // Sin partes elegidas a mano: al reasignar no hay paso de almacén, se vuelve al escaneo
+    if (reasignacion) return reiniciar()
+    setStep('almacen')
   }
 
   const warehouseItems: OptionItem[] = warehouses.map((w) => ({
@@ -175,7 +131,7 @@ export default function AsignarUbicacionPage() {
           step !== 'scan' && (
             <button
               type="button"
-              onClick={reiniciar}
+              onClick={() => navigate('/')}
               className="flex h-touch items-center gap-1.5 rounded-lg px-3 font-heading text-sm font-semibold text-destructive transition-colors duration-150 hover:bg-destructive-soft active:bg-destructive-soft"
             >
               <X aria-hidden className="size-4" />
@@ -244,44 +200,13 @@ export default function AsignarUbicacionPage() {
         </div>
       )}
 
-      {step === 'ubicacion' && almacen && parte && (
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-3 pb-4">
-          <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-            <p className="flex items-center gap-2 text-sm">
-              <WarehouseIcon aria-hidden className="size-4 shrink-0 text-primary" />
-              <span className="font-mono font-bold">{almacen.codigo}</span>
-              <span className="truncate text-muted-foreground">{toSentenceCase(almacen.descripcion)}</span>
-              {reasignacion && (
-                <span className="ml-auto shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                  Mismo almacén
-                </span>
-              )}
-            </p>
-            <CodigoUbicacion codigo={codigo} pasoActual={paso} onEditar={irAParte} automaticas={automaticas} />
-            <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
-              <p className="text-xs text-muted-foreground">
-                {hayEditables ? 'Toca una parte para cambiarla' : 'Elige una opción para continuar'}
-              </p>
-              <button
-                type="button"
-                onClick={goBack}
-                className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border-2 border-border-strong px-3 font-heading text-sm font-semibold transition-colors duration-150 hover:bg-muted active:bg-muted"
-              >
-                <Undo2 aria-hidden className="size-4" />
-                Paso anterior
-              </button>
-            </div>
-          </div>
-          <UbicacionGrid
-            info={parte}
-            prefijo={codigo}
-            opciones={opciones}
-            onSelect={elegirOpcion}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => void reload()}
-          />
-        </div>
+      {step === 'ubicacion' && almacen && (
+        <SelectorUbicacion
+          selector={selector}
+          almacen={almacen}
+          etiqueta={reasignacion ? 'Mismo almacén' : undefined}
+          onPasoAnterior={goBack}
+        />
       )}
 
       {step === 'resumen' && almacen && (
@@ -295,11 +220,11 @@ export default function AsignarUbicacionPage() {
               </div>
               <div className="space-y-3 px-4 py-3">
                 <p className="text-center font-mono text-3xl font-bold tracking-[0.15em] select-all">{codigo}</p>
-                <CodigoUbicacion codigo={codigo} size="lg" onEditar={irAParte} automaticas={automaticas} />
-                {hayEditables && (
+                <CodigoUbicacion codigo={codigo} size="lg" onEditar={irAParte} automaticas={selector.automaticas} />
+                {selector.hayEditables && (
                   <p className="text-center text-xs text-muted-foreground">Toca una parte para cambiarla</p>
                 )}
-                {elecciones.at(-1)?.multiple && (
+                {selector.multiple && (
                   <p className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
                     <Layers aria-hidden className="size-4 shrink-0" />
                     <span>
@@ -344,7 +269,7 @@ export default function AsignarUbicacionPage() {
           setAlmacen(almacenActual)
           setStep('ubicacion')
         }}
-        onCancel={reiniciar}
+        onCancel={() => navigate('/')}
       >
         {pallet && (
           <div className="space-y-2">

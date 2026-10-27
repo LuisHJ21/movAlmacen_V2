@@ -8,8 +8,47 @@ import type {
   PalletInfo,
   PalletInfoItem,
   PalletItem,
+  TipoTransferencia,
 } from '@/interfaces/pallet.interface'
 import { cleanOptional, cleanText, parseApiDateTime, toNumber } from '@/utils/format'
+
+/** dataItems/dataArticulo de /pallet/data y /pallet/datatransfer (mismo formato) → PalletData */
+function toPalletData(data: ApiPalletDataResponse['data']): PalletData {
+  const article = Array.isArray(data.dataArticulo) ? null : data.dataArticulo
+
+  return {
+    articulo: article && {
+      codigo: cleanText(article.codigo),
+      descripcion: cleanText(article.desc),
+      unidad: cleanText(article.und),
+      pesoUnidad: toNumber(article.pesoUnd),
+    },
+    items: (data.dataItems ?? []).map((i): PalletItem => ({
+      item: cleanText(i.item),
+      codArticulo: cleanText(i.codArt),
+      descripcion: cleanText(i.descArt),
+      bultos: toNumber(i.bultos),
+      peso: toNumber(i.peso),
+      fecha: cleanText(i.fecha),
+      lote: cleanText(i.lote),
+      traza: cleanText(i.traza),
+      unidad: cleanText(i.und),
+      pesoUnidad: toNumber(i.pesoUnd),
+      referencia: cleanText(i.referencia?.nro)
+        ? {
+            nroOrden: cleanText(i.referencia.nro),
+            descripcion: cleanText(i.referencia.desc),
+            tipoDoc: cleanText(i.referencia.tipo),
+            restante: null,
+            almacen: cleanText(i.referencia.almacen),
+            nroMov: cleanText(i.referencia.nroMov),
+            codArticulo: cleanText(i.codArt),
+            otPlan: '',
+          }
+        : null,
+    })),
+  }
+}
 
 export const palletService = {
   /** Verifica que el pallet exista. La API responde 404 (pallet_not_found) si no existe. */
@@ -27,7 +66,7 @@ export const palletService = {
       bultos: toNumber(p.numBulto),
       peso: toNumber(p.peso),
       estado: cleanText(p.estado),
-      ubicacion: cleanOptional(p.ubicaccion),
+      ubicacion: cleanOptional(p.ubicacion),
       almacen: cleanOptional(p.almacen),
       articulos: [...new Set((p.articulos ?? []).map(cleanText).filter(Boolean))],
     }
@@ -40,41 +79,19 @@ export const palletService = {
     })
 
     if (!data.success) throw new Error('No fue posible obtener los datos del pallet')
+    return toPalletData(data.data)
+  },
 
-    const article = Array.isArray(data.data.dataArticulo) ? null : data.data.dataArticulo
-
-    return {
-      articulo: article && {
-        codigo: cleanText(article.codigo),
-        descripcion: cleanText(article.desc),
-        unidad: cleanText(article.und),
-        pesoUnidad: toNumber(article.pesoUnd),
-      },
-      items: (data.data.dataItems ?? []).map((i): PalletItem => ({
-        item: cleanText(i.item),
-        codArticulo: cleanText(i.codArt),
-        descripcion: cleanText(i.descArt),
-        bultos: toNumber(i.bultos),
-        peso: toNumber(i.peso),
-        fecha: cleanText(i.fecha),
-        lote: cleanText(i.lote),
-        traza: cleanText(i.traza),
-        unidad: cleanText(i.und),
-        pesoUnidad: toNumber(i.pesoUnd),
-        referencia: cleanText(i.referencia?.nro)
-          ? {
-              nroOrden: cleanText(i.referencia.nro),
-              descripcion: cleanText(i.referencia.desc),
-              tipoDoc: cleanText(i.referencia.tipo),
-              restante: null,
-              almacen: cleanText(i.referencia.almacen),
-              nroMov: cleanText(i.referencia.nroMov),
-              codArticulo: cleanText(i.codArt),
-              otPlan: '',
-            }
-          : null,
-      })),
-    }
+  /**
+   * Ítems del pallet para transferirlo al almacén destino.
+   * tipo '1': origen sin códigos de ubicación, destino = almacén actual y pallet con ubicación; si no, '0'.
+   */
+  async getDataTransfer(palletCode: string, warehouseCode: string, tipo: TipoTransferencia): Promise<PalletData> {
+    const { data } = await axiosClient.get<ApiPalletDataResponse>('/pallet/datatransfer', {
+      params: { pallet: palletCode, tipo, almacen: warehouseCode },
+    })
+    if (!data.success) throw new Error('No fue posible obtener los datos del pallet para la transferencia')
+    return toPalletData(data.data)
   },
 
   /** Información y trazabilidad del pallet. La API responde 404 (pallet_not_found) si no existe. */

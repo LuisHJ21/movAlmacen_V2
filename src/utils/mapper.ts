@@ -1,6 +1,6 @@
 /**
  * Convierte las claves de las respuestas de la API a camelCase.
- * - MAYÚSCULAS_SNAKE: COD_MOV → codMov, UBICACCION → ubicaccion, F_REF → fRef
+ * - MAYÚSCULAS_SNAKE: COD_MOV → codMov, UBICACION → ubicacion, F_REF → fRef
  * - snake_case: access_token → accessToken, nro_vale → nroVale
  * - camelCase se mantiene: dataItems → dataItems
  */

@@ -10,13 +10,22 @@ interface CodigoUbicacionProps {
   onEditar?: (indice: number) => void
   /** Partes que se eligieron solas (única opción): no se pueden cambiar */
   automaticas?: boolean[]
+  /** soft: casillas claras y más bajas, para mostrar una ubicación sin destacarla tanto */
+  variant?: 'solid' | 'soft'
 }
 
 /**
  * Código de ubicación por partes (Código · Lado · Col. · Nivel · Prof.); las casillas vacías aún no se eligen.
  * Con onEditar, tocar una parte elegida vuelve a ese paso para corregirla.
  */
-export function CodigoUbicacion({ codigo, pasoActual, size = 'md', onEditar, automaticas = [] }: CodigoUbicacionProps) {
+export function CodigoUbicacion({
+  codigo,
+  pasoActual,
+  size = 'md',
+  onEditar,
+  automaticas = [],
+  variant = 'solid',
+}: CodigoUbicacionProps) {
   const partes = separarCodigoUbicacion(codigo)
 
   return (
@@ -26,9 +35,11 @@ export function CodigoUbicacion({ codigo, pasoActual, size = 'md', onEditar, aut
         const actual = index === pasoActual
         const editable = !!onEditar && !!valor && !automaticas[index]
         const casilla = `grid w-full place-items-center rounded-lg border-2 font-mono font-bold tracking-wider transition-colors duration-150 ${
-          size === 'lg' ? 'h-14 text-2xl' : 'h-11 text-lg'
+          size === 'lg' ? 'h-14 text-2xl' : variant === 'soft' ? 'h-9 text-base' : 'h-11 text-lg'
         } ${
-          valor
+          valor && variant === 'soft'
+            ? 'border-border bg-card text-foreground'
+            : valor
             ? `border-primary bg-primary text-on-primary ${editable ? 'hover:bg-primary-hover active:bg-primary-hover' : ''}`
             : actual
               ? 'border-dashed border-primary bg-primary-soft text-primary'

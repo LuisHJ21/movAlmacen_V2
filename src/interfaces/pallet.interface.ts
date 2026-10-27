@@ -5,8 +5,7 @@ interface ApiPalletHeader {
   numBulto: number
   peso: number
   estado: string
-  /** La API lo envía con doble "C" */
-  ubicaccion: string | null
+  ubicacion: string | null
   almacen: string | null
   /** Códigos de artículo con espacios de relleno (ej. "102006.0006 ") */
   articulos: string[]
@@ -161,3 +160,6 @@ export interface PalletInfo {
   observacion: string
   items: PalletInfoItem[]
 }
+
+/** Parámetro tipo de GET /pallet/datatransfer */
+export type TipoTransferencia = '0' | '1'

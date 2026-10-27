@@ -45,11 +45,26 @@ export function buildValeLines(
     kgAdicional: calcExtraKg(i.peso, i.pesoUnidad),
     bultosDisponibles: i.bultos,
     pesoDisponible: i.peso,
+    planDiario: null,
   }))
 }
 
+interface ValeLineRules {
+  /** Salidas: bultos y kg editables, con tope en lo disponible */
+  editable: boolean
+  /** El movimiento solicita plan diario por ítem */
+  requierePlan: boolean
+}
+
+/** Errores de la línea: cantidades (solo salidas) y plan diario (si el movimiento lo solicita) */
+export function validateValeLine(line: ValeLine, { editable, requierePlan }: ValeLineRules): ValeLineErrors {
+  const errors = editable ? validateQuantities(line) : {}
+  if (requierePlan && !line.planDiario) errors.planDiario = 'Elige el plan diario'
+  return errors
+}
+
 /** Reglas de edición en salidas: no se puede sacar más de lo disponible */
-export function validateValeLine(line: ValeLine): ValeLineErrors {
+function validateQuantities(line: ValeLine): ValeLineErrors {
   const errors: ValeLineErrors = {}
   if (!Number.isInteger(line.bultos) || line.bultos < 0) errors.bultos = 'Bultos inválidos'
   else if (line.bultos > line.bultosDisponibles) errors.bultos = `Máximo ${line.bultosDisponibles}`
@@ -156,12 +171,14 @@ export function buildValeRequest({
         peso: String(lineWeight(line)),
         matriz: matrixCode ?? '',
         lote: line.lote,
+        planDiario: line.planDiario?.codigo ?? '',
       })),
     ),
   }
 }
 
-export const isValeLineValid =(line: ValeLine) => Object.keys(validateValeLine(line)).length === 0
+export const isValeLineValid = (line: ValeLine, rules: ValeLineRules) =>
+  Object.keys(validateValeLine(line, rules)).length === 0
 
 export function valeTotals(lines: ValeLine[]) {
   return {

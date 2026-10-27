@@ -1,5 +1,18 @@
 import { useId, type ReactNode } from 'react'
-import { AlertCircle, FileText, Layers, Lock, Package, ScanBarcode, Trash2, Weight, type LucideIcon } from 'lucide-react'
+import {
+  AlertCircle,
+  CalendarDays,
+  ChevronRight,
+  FileText,
+  Layers,
+  Lock,
+  Package,
+  Pencil,
+  ScanBarcode,
+  Trash2,
+  Weight,
+  type LucideIcon,
+} from 'lucide-react'
 import { DecimalInput } from '@/components/ui/DecimalInput'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import type { ValeLine, ValeLineErrors } from '@/interfaces/vale.interface'
@@ -17,6 +30,8 @@ interface ValeItemCardProps {
   onRemove?: () => void
   /** Motivo por el que no se puede quitar (ej. último ítem del pallet inicial) */
   removeDisabledReason?: string
+  /** El movimiento solicita plan diario: se muestra el campo y al tocarlo se elige */
+  onPickPlan?: () => void
 }
 
 type Tone = 'primary' | 'success'
@@ -65,11 +80,14 @@ export function ValeItemCard({
   onChange,
   onRemove,
   removeDisabledReason,
+  onPickPlan,
 }: ValeItemCardProps) {
   const id = useId()
   const weight = lineWeight(line)
+  // El plan pendiente se marca en su propio campo; el pie queda para los errores de cantidades
   const errorText = errors.bultos ?? errors.kgAdicional ?? errors.peso
-  const hasError = !!errorText
+  const hasError = !!errorText || !!errors.planDiario
+  const plan = line.planDiario
 
   return (
     <article
@@ -119,6 +137,61 @@ export function ValeItemCard({
         <Field Icon={ScanBarcode} label="Trazabilidad">
           {line.traza || '—'}
         </Field>
+
+        {onPickPlan && (
+          <div className="py-2.5">
+            <button
+              type="button"
+              onClick={onPickPlan}
+              aria-label={plan ? `Plan diario del ítem ${line.item}: ${plan.codigo}. Cambiar` : `Elegir plan diario del ítem ${line.item}`}
+              className={`flex min-h-touch w-full items-center gap-2.5 rounded-lg border-2 px-2.5 py-2 text-left transition-colors duration-150 ${
+                plan
+                  ? 'border-border bg-card hover:bg-muted active:border-primary active:bg-primary-soft'
+                  : errors.planDiario
+                    ? 'border-dashed border-destructive bg-destructive-soft hover:bg-destructive-soft/70'
+                    : 'border-dashed border-primary/60 bg-primary-soft hover:bg-primary/10'
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`grid size-10 shrink-0 place-items-center rounded-lg ${
+                  plan ? 'bg-primary-soft text-primary' : errors.planDiario ? 'bg-white text-destructive' : 'bg-white text-primary'
+                }`}
+              >
+                <CalendarDays className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs text-muted-foreground">Plan diario</span>
+                {plan ? (
+                  <>
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate font-mono text-base font-semibold">{plan.codigo}</span>
+                      {plan.especie && (
+                        <span className="shrink-0 rounded bg-muted px-1.5 font-mono text-xs font-bold text-muted-foreground">
+                          {plan.especie}
+                        </span>
+                      )}
+                    </span>
+                    {plan.descripcion && (
+                      <span className="block truncate text-sm text-muted-foreground">{plan.descripcion}</span>
+                    )}
+                  </>
+                ) : (
+                  <span
+                    className={`block font-heading text-base font-semibold ${errors.planDiario ? 'text-destructive' : 'text-primary-hover'}`}
+                  >
+                    Elegir plan diario
+                  </span>
+                )}
+              </span>
+              {plan ? (
+                <Pencil aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronRight aria-hidden className={`size-5 shrink-0 ${errors.planDiario ? 'text-destructive' : 'text-primary'}`} />
+              )}
+            </button>
+          </div>
+        )}
 
         {editable ? (
           // Salida: controles debajo de cada etiqueta para que quepan a 400px

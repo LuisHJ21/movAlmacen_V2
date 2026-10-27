@@ -35,6 +35,7 @@ export const almacenService = {
         clase: cleanText(m.claseMov),
         contabiliza: cleanText(m.fContabiliza) === '1',
         requiereReferencia: cleanText(m.fRef) === '1',
+        solicitaPlan: cleanText(m.fSolcitaPlan) === '1',
       }))
       .sort((a, b) => a.codigo.localeCompare(b.codigo))
   },
