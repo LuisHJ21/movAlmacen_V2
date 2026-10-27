@@ -34,5 +34,21 @@ export interface UbicacionOpcion {
   multiple?: boolean
 }
 
+/** Cuerpo de POST /ubicacion (Asignar ubicación) */
+export interface AsignarUbicacionRequest {
+  /** Ubicación completa (ej. "C4I03204") */
+  codUbicacion: string
+  pallet: string
+  usuario: string
+  /** Almacén de la ubicación (al reasignar, el actual del pallet) */
+  almacenDest: string
+}
+
+/** Respuesta de POST /ubicacion: { success: true, message: "Ubicación guardada correctamente" } */
+export interface ApiAsignarUbicacionResponse {
+  success: boolean
+  message?: string
+}
+
 /** Partes del código de ubicación, en orden: C4 · I · 03 · 2 · 04 */
 export type ParteUbicacion = 'codigo' | 'lado' | 'columna' | 'nivel' | 'profundidad'

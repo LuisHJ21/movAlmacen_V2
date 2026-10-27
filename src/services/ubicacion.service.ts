@@ -1,6 +1,8 @@
 import { axiosClient } from '@/api/axiosClient'
 import { isAxiosError } from 'axios'
 import type {
+  ApiAsignarUbicacionResponse,
+  AsignarUbicacionRequest,
   ApiUbicacionesResponse,
   ApiUbicacionFiltroResponse,
   UbicacionOpcion,
@@ -54,5 +56,11 @@ export const ubicacionService = {
       if (isAxiosError(err) && err.response?.status === 404) return []
       throw err
     }
+  },
+
+  /** Asigna (o reasigna) la ubicación del pallet. Lanza error si la API responde con error o success = false. */
+  async asignar(payload: AsignarUbicacionRequest): Promise<void> {
+    const { data } = await axiosClient.post<ApiAsignarUbicacionResponse>('/ubicacion', payload)
+    if (!data?.success) throw new Error(data?.message ?? 'No fue posible asignar la ubicación')
   },
 }

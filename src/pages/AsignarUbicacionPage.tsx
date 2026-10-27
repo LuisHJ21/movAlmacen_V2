@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Layers, MapPin, MapPinned, Undo2, X } from 'lucide-react'
+import { isAxiosError } from 'axios'
+import { Check, Home, Layers, MapPin, MapPinned, Undo2, X } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/axiosClient'
 import { CodigoUbicacion } from '@/components/asignar-ubicacion/CodigoUbicacion'
 import { SelectorUbicacion } from '@/components/asignar-ubicacion/SelectorUbicacion'
@@ -11,19 +12,21 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { OptionList, type OptionItem } from '@/components/ui/OptionList'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useAuth } from '@/hooks/useAuth'
 import { useSelectorUbicacion } from '@/hooks/useSelectorUbicacion'
 import { useWarehouses } from '@/hooks/useWarehouses'
 import type { Warehouse } from '@/interfaces/almacen.interface'
 import type { Pallet } from '@/interfaces/pallet.interface'
 import { palletService } from '@/services/pallet.service'
+import { ubicacionService } from '@/services/ubicacion.service'
 import { formatQuantity, toSentenceCase } from '@/utils/format'
 
-type Step = 'scan' | 'almacen' | 'ubicacion' | 'resumen'
+type Step = 'scan' | 'almacen' | 'ubicacion' | 'resumen' | 'guardado'
 
 /**
  * Asignar ubicación: escanear pallet → almacén → código de ubicación → lado → columna → nivel →
  * profundidad → resumen. Si el pallet ya tiene ubicación se confirma la reasignación, que siempre
- * es dentro del mismo almacén: se omite el paso de almacén.
+ * es dentro del mismo almacén: se omite el paso de almacén. Se guarda con POST /ubicacion.
  */
 export default function AsignarUbicacionPage() {
   const navigate = useNavigate()
@@ -33,6 +36,9 @@ export default function AsignarUbicacionPage() {
   const [verifyError, setVerifyError] = useState<string>()
   const [confirmReasignar, setConfirmReasignar] = useState(false)
   const [almacen, setAlmacen] = useState<Warehouse | null>(null)
+  const { usuario } = useAuth()
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string>()
 
   const selector = useSelectorUbicacion(almacen, step === 'ubicacion')
   const { paso, codigo, parte } = selector
@@ -54,6 +60,7 @@ export default function AsignarUbicacionPage() {
 
   const reiniciar = () => {
     setStep('scan')
+    setSaveError(undefined)
     setPallet(undefined)
     setAlmacen(null)
     selector.reiniciar()
@@ -92,8 +99,32 @@ export default function AsignarUbicacionPage() {
     setStep('ubicacion')
   }
 
+  const guardar = async () => {
+    if (!pallet || !almacen || !usuario || !selector.completo || isSaving) return
+    setIsSaving(true)
+    setSaveError(undefined)
+    try {
+      await ubicacionService.asignar({
+        codUbicacion: codigo,
+        pallet: pallet.codigo,
+        usuario: usuario.usuario,
+        almacenDest: almacen.codigo,
+      })
+      setStep('guardado')
+    } catch (err) {
+      setSaveError(
+        isAxiosError(err) && !err.response
+          ? 'No se recibió respuesta del servidor. La ubicación pudo haberse asignado: verifica el pallet antes de reintentar.'
+          : getApiErrorMessage(err, 'No fue posible asignar la ubicación'),
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Regresar quita la última parte elegida a mano junto con las que se eligieron solas después
   const goBack = () => {
+    setSaveError(undefined)
     if (step === 'almacen') return reiniciar()
     if (selector.retroceder()) return setStep('ubicacion')
     // Sin partes elegidas a mano: al reasignar no hay paso de almacén, se vuelve al escaneo
@@ -120,15 +151,18 @@ export default function AsignarUbicacionPage() {
   const stepNumber = step === 'scan' ? 1 : step === 'almacen' ? 2 : step === 'resumen' ? offset + 5 : paso + offset
   const stepTitle =
     step === 'scan' ? 'Escanear pallet' : step === 'almacen' ? 'Almacén' : step === 'resumen' ? 'Confirmar' : parte?.titulo
+  const subtitle = step === 'guardado' ? (reasignacion ? 'Ubicación reasignada' : 'Ubicación asignada') : `Paso ${stepNumber} · ${stepTitle}`
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col">
       <PageHeader
         title="Asignar ubicación"
-        subtitle={`Paso ${stepNumber} · ${stepTitle}`}
-        onBack={step === 'scan' ? undefined : goBack}
+        subtitle={subtitle}
+        onBack={step === 'scan' || step === 'guardado' || isSaving ? undefined : goBack}
         action={
-          step !== 'scan' && (
+          step !== 'scan' &&
+          step !== 'guardado' &&
+          !isSaving && (
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -151,7 +185,7 @@ export default function AsignarUbicacionPage() {
         />
       )}
 
-      {step !== 'scan' && pallet && (
+      {step !== 'scan' && step !== 'guardado' && pallet && (
         <div className="space-y-2 px-4 pt-4">
           <PalletChip pallet={pallet} />
           {pallet.ubicacion && (
@@ -244,16 +278,67 @@ export default function AsignarUbicacionPage() {
           </div>
 
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
-            {/* TODO: guardar con el endpoint de asignación cuando esté disponible */}
-            <Alert type="info">Falta el endpoint para guardar la asignación.</Alert>
+            {saveError && (
+              <Alert type="error" onClose={() => setSaveError(undefined)}>
+                {saveError}
+              </Alert>
+            )}
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={goBack} icon={<Undo2 aria-hidden className="size-5" />} className="shrink-0 px-4">
+              <Button
+                variant="secondary"
+                onClick={goBack}
+                disabled={isSaving}
+                icon={<Undo2 aria-hidden className="size-5" />}
+                className="shrink-0 px-4"
+              >
                 Atrás
               </Button>
-              <Button fullWidth disabled icon={<MapPin aria-hidden className="size-5" />}>
-                Asignar ubicación
+              <Button
+                fullWidth
+                onClick={() => void guardar()}
+                isLoading={isSaving}
+                icon={isSaving ? undefined : <MapPin aria-hidden className="size-5" />}
+              >
+                {isSaving ? 'Asignando…' : reasignacion ? 'Reasignar ubicación' : 'Asignar ubicación'}
               </Button>
             </div>
+          </div>
+        </>
+      )}
+
+      {step === 'guardado' && pallet && almacen && (
+        <>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">
+            <article aria-label="Ubicación asignada" className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <div role="status" className="flex items-center gap-3 bg-success px-4 py-3.5 text-white">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/20">
+                  <Check aria-hidden className="size-6" strokeWidth={3} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-lg leading-tight font-bold text-white">
+                    {reasignacion ? 'Ubicación reasignada' : 'Ubicación asignada'}
+                  </h2>
+                  <p className="text-sm text-white/90">
+                    <span className="font-mono font-semibold">{pallet.codigo}</span> · {almacen.codigo}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3 px-4 py-4">
+                <p className="text-center font-mono text-3xl font-bold tracking-[0.15em] select-all">{codigo}</p>
+                <CodigoUbicacion codigo={codigo} size="lg" />
+                {pallet.ubicacion && (
+                  <p className="rounded-lg bg-muted px-3 py-2 text-center text-sm">
+                    Antes en <span className="font-mono font-semibold">{pallet.ubicacion}</span>
+                  </p>
+                )}
+              </div>
+            </article>
+          </div>
+
+          <div className="border-t border-border bg-card px-4 py-3">
+            <Button fullWidth onClick={() => navigate('/')} icon={<Home aria-hidden className="size-5" />}>
+              Ir al inicio
+            </Button>
           </div>
         </>
       )}
