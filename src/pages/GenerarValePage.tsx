@@ -27,7 +27,6 @@ import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
 import { palletService } from '@/services/pallet.service'
 import { valeService } from '@/services/vale.service'
 import { formatWeight, toSentenceCase } from '@/utils/format'
-import { getAllowedMovementKind } from '@/utils/validations'
 import {
   generateFormId,
   buildValeLines,
@@ -250,10 +249,6 @@ export default function GenerarValePage() {
     setAddError(undefined)
     try {
       const verified = await palletService.verify(code)
-      if (getAllowedMovementKind(verified) !== 'SAL') {
-        setAddError('El pallet no tiene almacén y ubicación: no puede salir')
-        return
-      }
       if (!verified.articulos.includes(articleCode)) {
         setAddError(`El pallet no contiene el artículo ${articleCode}`)
         return

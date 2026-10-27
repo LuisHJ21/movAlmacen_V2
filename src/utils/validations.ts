@@ -1,6 +1,4 @@
 import type { LoginCredentials } from '@/interfaces/auth.interface'
-import type { MovementKind } from '@/interfaces/movimiento.interface'
-import type { Pallet } from '@/interfaces/pallet.interface'
 
 export type LoginErrors = Partial<Record<'usuario' | 'clave', string>>
 
@@ -21,15 +19,6 @@ export function normalizeScanCode(raw: string): string {
 /** Código de pallet: 2 alfanuméricos + 8 dígitos (ej. PA00000001) */
 export const PALLET_CODE_PATTERN = /^[A-Z0-9]{2}\d{8}$/
 export const PALLET_CODE_LENGTH = 10
-
-/**
- * Tipo de movimiento permitido para un pallet:
- * - Con almacén y ubicación → ya está en almacén: solo salida
- * - En cualquier otro caso → solo ingreso
- */
-export function getAllowedMovementKind(pallet: Pallet): MovementKind {
-  return pallet.almacen && pallet.ubicacion ? 'SAL' : 'ING'
-}
 
 export function validatePalletCode(code: string): string | undefined {
   if (!code) return 'Escanea o escribe el código del pallet'

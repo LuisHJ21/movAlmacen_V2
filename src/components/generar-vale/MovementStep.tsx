@@ -7,18 +7,12 @@ import { useMovements } from '@/hooks/useMovements'
 import type { Movement, MovementKind } from '@/interfaces/movimiento.interface'
 import type { Pallet } from '@/interfaces/pallet.interface'
 import { toSentenceCase } from '@/utils/format'
-import { getAllowedMovementKind } from '@/utils/validations'
 import { PalletChip } from './PalletChip'
 
 const kindOptions: SegmentOption<MovementKind>[] = [
   { value: 'ING', label: 'Ingreso', Icon: ArrowDownToLine },
   { value: 'SAL', label: 'Salida', Icon: ArrowUpFromLine },
 ]
-
-const kindHints: Record<MovementKind, string> = {
-  ING: 'El pallet no tiene almacén y ubicación asignados: solo puede ingresar.',
-  SAL: 'El pallet ya tiene almacén y ubicación: solo puede salir.',
-}
 
 interface MovementStepProps {
   pallet: Pallet
@@ -43,15 +37,19 @@ export function MovementStep({
   onDismissError,
 }: MovementStepProps) {
   const { movements, isLoading, error, reload } = useMovements()
-  // El tipo lo define el estado del pallet; el otro queda bloqueado
-  const kind = getAllowedMovementKind(pallet)
+  // El operador elige ingreso o salida; arranca en el elegido antes o, por defecto, en ingreso
+  const [kind, setKind] = useState<MovementKind>(initialMovement?.tipo ?? 'ING')
   // Movimiento tocado: muestra el indicador de carga mientras se consulta
   const [pendingCode, setPendingCode] = useState<string | null>(null)
 
   const available = useMemo(() => movements.filter((m) => m.tipo === kind), [movements, kind])
   const items: OptionItem[] = available.map((m) => ({ key: m.codigo, badge: m.codigo, title: toSentenceCase(m.nombre) }))
 
-  const kindSegments = kindOptions.map((option) => ({ ...option, disabled: option.value !== kind }))
+  const handleKind = (next: MovementKind) => {
+    if (isSubmitting) return
+    setKind(next)
+    onDismissError?.()
+  }
 
   const handleSelect = (code: string) => {
     const movement = available.find((m) => m.codigo === code)
@@ -66,10 +64,9 @@ export function MovementStep({
         <PalletChip pallet={pallet} articleCode={articleCode} />
         <SegmentedControl
           label="Tipo de movimiento"
-          options={kindSegments}
+          options={kindOptions}
           value={kind}
-          onChange={() => {}}
-          hint={kindHints[kind]}
+          onChange={handleKind}
         />
         {/* Error al consultar el movimiento tocado (ej. sin matriz) */}
         {submitError && !isSubmitting && (
