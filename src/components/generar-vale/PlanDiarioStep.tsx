@@ -29,13 +29,13 @@ export function PlanDiarioStep({ palletCode, articleCode, movement, line, sinPla
     setIsLoading(true)
     setError(undefined)
     try {
-      setPlanes(await planDiarioService.getDisponibles({ movementCode: movement.codigo, articleCode }))
+      setPlanes(await planDiarioService.getActivos())
     } catch (err) {
       setError(getApiErrorMessage(err, 'No fue posible consultar los planes diarios'))
     } finally {
       setIsLoading(false)
     }
-  }, [movement.codigo, articleCode])
+  }, [])
 
   useEffect(() => {
     void cargar()
@@ -84,7 +84,7 @@ export function PlanDiarioStep({ palletCode, articleCode, movement, line, sinPla
             key: p.codigo,
             badge: p.codigo,
             title: p.descripcion || p.codigo,
-            meta: [p.especie && `Especie ${p.especie}`, p.fecha].filter(Boolean).join(' · ') || undefined,
+            meta: p.especie ? `Especie ${p.especie}` : undefined,
             searchText: p.especie,
           }))}
           selectedKey={line.planDiario?.codigo ?? null}
@@ -92,7 +92,7 @@ export function PlanDiarioStep({ palletCode, articleCode, movement, line, sinPla
           isLoading={isLoading}
           error={error}
           onRetry={() => void cargar()}
-          emptyMessage="No hay planes diarios disponibles para este artículo."
+          emptyMessage="No hay planes diarios activos."
           badgePlacement="top"
           searchPlaceholder="Buscar plan"
         />
