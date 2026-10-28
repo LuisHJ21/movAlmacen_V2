@@ -8,24 +8,26 @@ import {
   Search,
   type LucideIcon,
 } from 'lucide-react'
+import type { MenuTone } from './MenuOptionButton'
 
 export interface MenuOption {
   label: string
   description: string
   path: string
   Icon: LucideIcon
-  /** Opción que deshace operaciones: se muestra en rojo */
-  destructive?: boolean
 }
 
 export interface MenuSection {
   title: string
+  /** Color de las tarjetas de la sección */
+  tone: MenuTone
   options: MenuOption[]
 }
 
 export const menuSections: MenuSection[] = [
   {
     title: 'Operaciones',
+    tone: 'operacion',
     options: [
       { label: 'Generar vale', description: 'Ingreso o salida de pallets', path: '/generar-vale', Icon: FilePlus2 },
       { label: 'Transferir entre almacenes', description: 'Traslada un pallet a otro almacén', path: '/transferencia-almacen', Icon: ArrowRightLeft },
@@ -35,6 +37,7 @@ export const menuSections: MenuSection[] = [
   },
   {
     title: 'Consultas',
+    tone: 'consulta',
     options: [
       { label: 'Historial de vales', description: 'Consulta tus vales por fecha', path: '/historial-vales', Icon: ClipboardList },
       { label: 'Detalle de pallet', description: 'Escanea y consulta un pallet', path: '/detalle-pallet', Icon: Search },
@@ -42,8 +45,9 @@ export const menuSections: MenuSection[] = [
   },
   {
     title: 'Anulaciones',
+    tone: 'anulacion',
     options: [
-      { label: 'Anular transferencia', description: 'Revierte una transferencia', path: '/anular-transferencia', Icon: Ban, destructive: true },
+      { label: 'Anular transferencia', description: 'Revierte una transferencia', path: '/anular-transferencia', Icon: Ban },
     ],
   },
 ]

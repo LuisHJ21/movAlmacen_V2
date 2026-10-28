@@ -19,8 +19,12 @@
   /* Naranja de acción: #c2410c con texto blanco = 5.2:1 (AA) */
   --color-primary: #c2410c;
   --color-primary-hover: #9a3412;
+  /* Naranja más oscuro: hover de las tarjetas de consulta (que ya usan primary-hover) */
+  --color-primary-deep: #7c2d12;
   --color-primary-soft: #fff7ed;
   --color-primary-border: #fed7aa;
+  /* Recuadro de íconos sobre tarjeta blanca */
+  --color-primary-muted: #ffedd5;
   --color-on-primary: #ffffff;
 
   /* Naranja del logo (solo decorativo, no para texto) */
@@ -41,6 +45,8 @@
   --color-destructive: #b91c1c;
   --color-destructive-hover: #991b1b;
   --color-destructive-soft: #fef2f2;
+  --color-destructive-muted: #fee2e2;
+  --color-destructive-border: #fecaca;
   --color-on-destructive: #ffffff;
 
   --color-ring: #c2410c;

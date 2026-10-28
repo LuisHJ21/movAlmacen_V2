@@ -2,30 +2,33 @@ import { Package, Scan } from 'lucide-react'
 
 type Variant = 'stacked' | 'inline'
 
-/** Ícono: pallet/caja dentro de un marco de escaneo */
-function LogoMark({ size }: { size: 'md' | 'lg' }) {
+/** Ícono: pallet/caja dentro de un marco de escaneo. onPrimary: invertido para fondo naranja */
+function LogoMark({ size, onPrimary = false }: { size: 'md' | 'lg'; onPrimary?: boolean }) {
   const box = size === 'lg' ? 'size-16 rounded-2xl' : 'size-10 rounded-xl'
   const frame = size === 'lg' ? 'size-11' : 'size-7'
   const pkg = size === 'lg' ? 'size-5' : 'size-3.5'
   return (
-    <span aria-hidden className={`relative grid shrink-0 place-items-center bg-brand text-white ${box}`}>
+    <span
+      aria-hidden
+      className={`relative grid shrink-0 place-items-center ${onPrimary ? 'bg-white text-primary' : 'bg-brand text-white'} ${box}`}
+    >
       <Scan className={frame} strokeWidth={1.75} />
       <Package className={`absolute ${pkg}`} strokeWidth={2} />
     </span>
   )
 }
 
-function Wordmark({ size }: { size: 'md' | 'lg' }) {
+function Wordmark({ size, onPrimary = false }: { size: 'md' | 'lg'; onPrimary?: boolean }) {
   return (
     <span className={`flex flex-col ${size === 'lg' ? 'items-center' : 'items-start'}`}>
       <span
         className={`font-heading leading-none font-bold tracking-tight ${size === 'lg' ? 'text-3xl' : 'text-xl'}`}
       >
-        <span className="text-foreground">mov</span>
-        <span className="text-primary">almacén</span>
+        <span className={onPrimary ? 'text-white' : 'text-foreground'}>mov</span>
+        <span className={onPrimary ? 'text-primary-border' : 'text-primary'}>almacén</span>
       </span>
       <span
-        className={`mt-1 font-semibold tracking-[0.2em] text-muted-foreground uppercase ${
+        className={`mt-1 font-semibold tracking-[0.2em] uppercase ${onPrimary ? 'text-white/85' : 'text-muted-foreground'} ${
           size === 'lg' ? 'text-xs' : 'text-[0.625rem]'
         }`}
       >
@@ -35,8 +38,8 @@ function Wordmark({ size }: { size: 'md' | 'lg' }) {
   )
 }
 
-/** Logo de MovAlmacén. stacked: login · inline: Navbar */
-export function Logo({ variant = 'inline' }: { variant?: Variant }) {
+/** Logo de MovAlmacén. stacked: login · inline: Navbar. onPrimary: sobre la cabecera naranja */
+export function Logo({ variant = 'inline', onPrimary = false }: { variant?: Variant; onPrimary?: boolean }) {
   if (variant === 'stacked') {
     return (
       <span className="flex flex-col items-center gap-4">
@@ -48,8 +51,8 @@ export function Logo({ variant = 'inline' }: { variant?: Variant }) {
 
   return (
     <span className="flex items-center gap-2.5">
-      <LogoMark size="md" />
-      <Wordmark size="md" />
+      <LogoMark size="md" onPrimary={onPrimary} />
+      <Wordmark size="md" onPrimary={onPrimary} />
     </span>
   )
 }

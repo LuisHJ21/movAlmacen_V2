@@ -44,7 +44,7 @@ export function UserMenu() {
         aria-expanded={open}
         aria-controls="user-menu"
         aria-label={`Menú de usuario: ${user.nombre}`}
-        className="grid size-touch place-items-center rounded-full transition-opacity duration-150 active:opacity-80"
+        className="grid size-touch place-items-center rounded-full transition-opacity duration-150 focus-visible:outline-white active:opacity-80"
       >
         <Avatar name={user.nombre} />
       </button>
@@ -54,29 +54,31 @@ export function UserMenu() {
           id="user-menu"
           role="menu"
           aria-label="Opciones de usuario"
-          className="absolute top-full right-0 z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-stone-900/10"
+          className="absolute top-full right-0 z-20 mt-1 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-stone-900/15"
         >
-          <div className="flex flex-col items-center gap-3 px-5 pt-6 pb-5 text-center">
-            <Avatar name={user.nombre} size="lg" />
+          {/* Usuario en una fila: iniciales + nombre + usuario y perfil */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5">
+            <Avatar name={user.nombre} neutral />
             <div className="min-w-0">
-              <p className="truncate font-heading text-lg font-semibold text-foreground">{user.nombre}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {user.usuario} · {user.perfil}
+              <p className="truncate font-heading text-sm leading-tight font-semibold text-foreground">{user.nombre}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                <span className="font-mono">{user.usuario}</span> · {user.perfil}
               </p>
             </div>
           </div>
-          <div className="border-t border-border p-2">
-            <button
-              ref={logoutRef}
-              type="button"
-              role="menuitem"
-              onClick={logout}
-              className="flex h-touch w-full items-center justify-center gap-2 rounded-lg font-heading font-semibold text-destructive transition-colors duration-150 hover:bg-destructive-soft active:bg-destructive-soft"
-            >
+          {/* Fila de menú (no botón): lo único con color es el texto rojo de salir */}
+          <button
+            ref={logoutRef}
+            type="button"
+            role="menuitem"
+            onClick={logout}
+            className="flex h-touch w-full items-center gap-2.5 border-t border-border px-3 text-left font-heading text-sm font-semibold text-destructive transition-colors duration-150 hover:bg-destructive-soft active:bg-destructive-soft"
+          >
+            <span className="grid size-11 shrink-0 place-items-center">
               <LogOut aria-hidden className="size-5" />
-              Cerrar sesión
-            </button>
-          </div>
+            </span>
+            Cerrar sesión
+          </button>
         </div>
       )}
     </div>
