@@ -66,9 +66,9 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
           <Alert type={bloqueadas === references.length ? 'error' : 'info'}>
             {pallet.almacen
               ? bloqueadas === references.length
-                ? `Ninguna referencia está proyectada en ${pallet.almacen}, el almacén del pallet.`
-                : `Solo puedes elegir referencias proyectadas en ${pallet.almacen}, el almacén del pallet.`
-              : 'El pallet no tiene almacén asignado: no puede salir con referencia.'}
+                ? `No existen referencias proyectadas en el almacen  ${pallet.almacen}.`
+                : `Solo puedes elegir referencias proyectadas en ${pallet.almacen}, .`
+              : 'El pallet no tiene almacén asignado, no puede salir con referencia.'}
           </Alert>
         )}
       </div>
