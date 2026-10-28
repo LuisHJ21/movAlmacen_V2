@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleAlert, RotateCcw, ScanQrCode, Warehouse, X } from 'lucide-react'
+import { isAxiosError } from 'axios'
+import { ArrowRight, ArrowRightLeft, Check, CircleAlert, Home, RotateCcw, ScanQrCode, Warehouse, X } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/axiosClient'
 import { ArticleStep } from '@/components/generar-vale/ArticleStep'
 import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
@@ -13,13 +14,16 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Pallet } from '@/interfaces/pallet.interface'
+import { useAuth } from '@/hooks/useAuth'
 import { palletService } from '@/services/pallet.service'
+import { transferPalletService } from '@/services/transferPallet.service'
+import { buildTransferPalletRequest } from '@/utils/transferPallet'
 import type { EtiquetaCaja } from '@/interfaces/caja.interface'
 import { obtenerCajasReales, resumirCaja, toCajaReal, type ResumenCaja } from '@/utils/cajasReales'
-import { formatWeight } from '@/utils/format'
+import { formatCount, formatWeight } from '@/utils/format'
 import { buscarCaja, cantidadesDisponibles, type TipoCajaEscaneo } from '@/utils/validarCaja'
 
-type Step = 'origen' | 'destino' | 'articulo' | 'resumen' | 'caja'
+type Step = 'origen' | 'destino' | 'articulo' | 'resumen' | 'caja' | 'guardado'
 
 /** Validación fallida al escanear: se muestra como aviso y el motivo queda bajo el campo */
 interface AlertaPallet {
@@ -35,6 +39,7 @@ const stepTitles: Record<Step, string> = {
   articulo: 'Artículo',
   resumen: 'Resumen',
   caja: 'Escanear caja',
+  guardado: 'Transferencia registrada',
 }
 
 const Codigo = ({ children }: { children: ReactNode }) => <span className="font-mono font-bold">{children}</span>
@@ -62,6 +67,41 @@ export default function TransferenciaPalletPage() {
   const [escaneadas, setEscaneadas] = useState<CajaEscaneada[]>([])
   const [alertaCaja, setAlertaCaja] = useState<{ titulo: string; motivo: string } | null>(null)
   const [aviso, setAviso] = useState<string>()
+  const { usuario } = useAuth()
+  // Guardado (POST /transferPallet)
+  const [confirmarGuardar, setConfirmarGuardar] = useState(false)
+  const cerrarConfirmar = useCallback(() => setConfirmarGuardar(false), [])
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string>()
+  const totalEscaneado = escaneadas.reduce((s, c) => s + c.peso, 0)
+
+  const guardar = async () => {
+    setConfirmarGuardar(false)
+    if (!origen || !destino || !articulo || !usuario || escaneadas.length === 0 || isSaving) return
+    setIsSaving(true)
+    setSaveError(undefined)
+    try {
+      await transferPalletService.create(
+        buildTransferPalletRequest({
+          palletO: origen.codigo,
+          palletD: destino.codigo,
+          usuario: usuario.usuario,
+          articulo,
+          cajas: escaneadas,
+        }),
+      )
+      setStep('guardado')
+    } catch (err) {
+      // Sin respuesta no se sabe si se registró: se avisa antes de reintentar
+      setSaveError(
+        isAxiosError(err) && !err.response
+          ? 'No se recibió respuesta del servidor. La transferencia pudo haberse registrado: verifícala antes de volver a guardar.'
+          : getApiErrorMessage(err, 'No fue posible registrar la transferencia'),
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const verificar = async (code: string, validar: (pallet: Pallet) => AlertaPallet | null, onOk: (pallet: Pallet) => void) => {
     setIsVerifying(true)
@@ -221,17 +261,21 @@ export default function TransferenciaPalletPage() {
 
   const conArticulo = !!origen && origen.articulos.length > 1
   const pasoResumen = conArticulo ? 4 : 3
-  const stepNumber = { origen: 1, destino: 2, articulo: 3, resumen: pasoResumen, caja: pasoResumen + 1 }[step]
+  const stepNumber = { origen: 1, destino: 2, articulo: 3, resumen: pasoResumen, caja: pasoResumen + 1, guardado: 0 }[step]
+  const terminado = step === 'guardado'
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col">
       <PageHeader
         title="Transferencia entre pallets"
-        subtitle={`Paso ${stepNumber} · ${stepTitles[step]}`}
-        onBack={step === 'origen' || isVerifying ? undefined : goBack}
+        subtitle={terminado ? stepTitles.guardado : `Paso ${stepNumber} · ${stepTitles[step]}`}
+        onBack={step === 'origen' || terminado || isVerifying || isSaving ? undefined : goBack}
+        backTo={terminado ? '/' : undefined}
         action={
           step !== 'origen' &&
-          !isVerifying && (
+          !terminado &&
+          !isVerifying &&
+          !isSaving && (
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -244,7 +288,7 @@ export default function TransferenciaPalletPage() {
         }
       />
 
-      {step !== 'origen' && (
+      {step !== 'origen' && !terminado && (
         <div className="px-4 pt-4">
           <RutaPallets origen={origen} destino={step === 'destino' ? undefined : destino} />
         </div>
@@ -315,22 +359,45 @@ export default function TransferenciaPalletPage() {
           </div>
 
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
-            {aviso && (
-              <Alert type="success" onClose={() => setAviso(undefined)}>
-                {aviso}
+            {saveError ? (
+              <Alert type="error" onClose={() => setSaveError(undefined)}>
+                {saveError}
               </Alert>
+            ) : (
+              aviso && (
+                <Alert type="success" onClose={() => setAviso(undefined)}>
+                  {aviso}
+                </Alert>
+              )
             )}
-            <Button
-              fullWidth
-              disabled={!cajas || cargando}
-              onClick={() => {
-                setAviso(undefined)
-                setStep('caja')
-              }}
-              icon={<ScanQrCode aria-hidden className="size-5" />}
-            >
-              Escanear caja
-            </Button>
+            {/* Con cajas escaneadas: Transferir pasa a ser la acción principal */}
+            <div className={escaneadas.length > 0 ? 'grid grid-cols-2 gap-2' : ''}>
+              <Button
+                fullWidth
+                variant={escaneadas.length > 0 ? 'secondary' : 'primary'}
+                disabled={!cajas || cargando || isSaving}
+                onClick={() => {
+                  setAviso(undefined)
+                  setSaveError(undefined)
+                  setStep('caja')
+                }}
+                icon={<ScanQrCode aria-hidden className="size-5" />}
+                className="px-3"
+              >
+                Escanear caja
+              </Button>
+              {escaneadas.length > 0 && (
+                <Button
+                  fullWidth
+                  isLoading={isSaving}
+                  onClick={() => setConfirmarGuardar(true)}
+                  icon={isSaving ? undefined : <ArrowRightLeft aria-hidden className="size-5" />}
+                  className="px-3"
+                >
+                  {isSaving ? 'Registrando…' : `Transferir (${escaneadas.length})`}
+                </Button>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -342,6 +409,76 @@ export default function TransferenciaPalletPage() {
           onLeida={handleCaja}
         />
       )}
+
+      {step === 'guardado' && origen && destino && (
+        <>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4">
+            <article
+              aria-label="Comprobante de la transferencia"
+              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+            >
+              <div role="status" className="flex items-center gap-3 bg-success px-4 py-3.5 text-white">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/20">
+                  <Check aria-hidden className="size-6" strokeWidth={3} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-lg leading-tight font-bold text-white">Transferencia registrada</h2>
+                  <p className="text-sm text-white/90">Las cajas pasaron al pallet destino</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">De</p>
+                  <p className="font-mono font-bold">{origen.codigo}</p>
+                </div>
+                <ArrowRight aria-hidden className="size-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1 text-right">
+                  <p className="text-xs text-muted-foreground">A</p>
+                  <p className="font-mono font-bold">{destino.codigo}</p>
+                </div>
+              </div>
+              <div className="mx-4 mb-4 flex items-baseline justify-between rounded-lg bg-muted px-3 py-2.5">
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {formatCount(escaneadas.length)} {escaneadas.length === 1 ? 'caja' : 'cajas'}
+                </span>
+                <span className="font-mono text-xl font-bold">{formatWeight(totalEscaneado)}</span>
+              </div>
+            </article>
+          </div>
+          <div className="border-t border-border bg-card px-4 py-3">
+            <Button fullWidth onClick={() => navigate('/')} icon={<Home aria-hidden className="size-5" />}>
+              Ir al inicio
+            </Button>
+          </div>
+        </>
+      )}
+
+      <ConfirmDialog
+        open={confirmarGuardar}
+        title="¿Registrar la transferencia?"
+        Icon={ArrowRightLeft}
+        confirmLabel="Sí, transferir"
+        cancelLabel="Revisar"
+        onConfirm={() => void guardar()}
+        onCancel={cerrarConfirmar}
+      >
+        {origen && destino && (
+          <dl className="space-y-1.5 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">De → a</dt>
+              <dd className="font-mono font-semibold">
+                {origen.codigo} → {destino.codigo}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Cajas</dt>
+              <dd className="font-mono font-semibold">
+                {formatCount(escaneadas.length)} · {formatWeight(totalEscaneado)}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!alertaCaja}
