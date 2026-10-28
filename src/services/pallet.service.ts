@@ -34,6 +34,7 @@ function toPalletData(data: ApiPalletDataResponse['data']): PalletData {
       traza: cleanText(i.traza),
       unidad: cleanText(i.und),
       pesoUnidad: toNumber(i.pesoUnd),
+      adicional: toNumber(i.adicional),
       referencia: cleanText(i.referencia?.nro)
         ? {
             nroOrden: cleanText(i.referencia.nro),

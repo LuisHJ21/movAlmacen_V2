@@ -1,8 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CircleAlert, Warehouse, X } from 'lucide-react'
+import { CircleAlert, RotateCcw, ScanQrCode, Warehouse, X } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/axiosClient'
+import { ArticleStep } from '@/components/generar-vale/ArticleStep'
 import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
+import { CajasEscaneadasList, type CajaEscaneada } from '@/components/transferencia-pallet/CajasEscaneadasList'
+import { CajasRealesList } from '@/components/transferencia-pallet/CajasRealesList'
+import { EscanearCajaStep } from '@/components/transferencia-pallet/EscanearCajaStep'
 import { PalletResumenCard } from '@/components/transferencia-pallet/PalletResumenCard'
 import { RutaPallets } from '@/components/transferencia-pallet/RutaPallets'
 import { Alert } from '@/components/ui/Alert'
@@ -11,8 +15,12 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Pallet } from '@/interfaces/pallet.interface'
 import { palletService } from '@/services/pallet.service'
+import type { EtiquetaCaja } from '@/interfaces/caja.interface'
+import { obtenerCajasReales, resumirCaja, toCajaReal, type ResumenCaja } from '@/utils/cajasReales'
+import { formatWeight } from '@/utils/format'
+import { buscarCaja, cantidadesDisponibles, type TipoCajaEscaneo } from '@/utils/validarCaja'
 
-type Step = 'origen' | 'destino' | 'resumen'
+type Step = 'origen' | 'destino' | 'articulo' | 'resumen' | 'caja'
 
 /** Validación fallida al escanear: se muestra como aviso y el motivo queda bajo el campo */
 interface AlertaPallet {
@@ -25,14 +33,18 @@ interface AlertaPallet {
 const stepTitles: Record<Step, string> = {
   origen: 'Pallet origen',
   destino: 'Pallet destino',
+  articulo: 'Artículo',
   resumen: 'Resumen',
+  caja: 'Escanear caja',
 }
 
 const Codigo = ({ children }: { children: ReactNode }) => <span className="font-mono font-bold">{children}</span>
 
 /**
- * Transferencia entre pallets: escanear pallet origen → escanear pallet destino.
- * Ambos deben tener almacén asignado y estar en el mismo almacén; el destino no puede ser el mismo origen.
+ * Transferencia entre pallets: escanear pallet origen → escanear pallet destino → artículo (si el origen
+ * tiene varios) → resumen. Ambos deben tener almacén asignado y estar en el mismo almacén; el destino no
+ * puede ser el mismo origen. En el resumen se traen los ítems del origen (/pallet/data sin movimiento)
+ * y se simulan sus cajas reales (utils/cajasReales).
  */
 export default function TransferenciaPalletPage() {
   const navigate = useNavigate()
@@ -42,6 +54,15 @@ export default function TransferenciaPalletPage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyError, setVerifyError] = useState<string>()
   const [alerta, setAlerta] = useState<AlertaPallet | null>(null)
+  const [articulo, setArticulo] = useState<string | null>(null)
+  const [cajas, setCajas] = useState<{ filas: ResumenCaja[]; pesoUnd: number } | null>(null)
+  const [cargando, setCargando] = useState(false)
+  const [errorCarga, setErrorCarga] = useState<string>()
+  // Cajas escaneadas: usadas[i] = cajas de la fila i ya escaneadas
+  const [usadas, setUsadas] = useState<number[]>([])
+  const [escaneadas, setEscaneadas] = useState<CajaEscaneada[]>([])
+  const [alertaCaja, setAlertaCaja] = useState<{ titulo: string; motivo: string } | null>(null)
+  const [aviso, setAviso] = useState<string>()
 
   const verificar = async (code: string, validar: (pallet: Pallet) => AlertaPallet | null, onOk: (pallet: Pallet) => void) => {
     setIsVerifying(true)
@@ -122,9 +143,39 @@ export default function TransferenciaPalletPage() {
       },
       (p) => {
         setDestino(p)
-        setStep('resumen')
+        // Varios artículos en el origen: se elige cuál transferir antes de traer sus datos
+        if (origen.articulos.length > 1) return setStep('articulo')
+        elegirArticulo(origen.articulos[0] ?? '')
       },
     )
+  }
+
+  const elegirArticulo = (codigo: string) => {
+    setArticulo(codigo)
+    setStep('resumen')
+    void cargarOrigen(codigo)
+  }
+
+  // Datos del origen (/pallet/data sin movimiento) y simulación de sus cajas reales
+  const cargarOrigen = async (codigoArticulo: string) => {
+    if (!origen) return
+    setCargando(true)
+    setErrorCarga(undefined)
+    setCajas(null)
+    setUsadas([])
+    setEscaneadas([])
+    setAviso(undefined)
+    try {
+      const data = await palletService.getData(origen.codigo, '', codigoArticulo)
+      const items = data.items.filter((i) => i.codArticulo === codigoArticulo || !i.codArticulo)
+      const pesoUnd = data.articulo?.pesoUnidad || items[0]?.pesoUnidad || 0
+      const filas = obtenerCajasReales(items.map(toCajaReal), pesoUnd).map((c) => resumirCaja(c, pesoUnd))
+      setCajas({ filas, pesoUnd })
+    } catch (err) {
+      setErrorCarga(getApiErrorMessage(err, 'No fue posible obtener los datos del pallet origen'))
+    } finally {
+      setCargando(false)
+    }
   }
 
   // Al cerrar el aviso el motivo queda bajo el campo, y el código queda seleccionado para la siguiente lectura
@@ -133,12 +184,45 @@ export default function TransferenciaPalletPage() {
     setAlerta(null)
   }
 
-  const goBack = () => {
-    setVerifyError(undefined)
-    setStep(step === 'resumen' ? 'destino' : 'origen')
+  // Etiqueta leída: se busca una caja real de esa cantidad de registros que la incluya y, si no se escaneó, se suma
+  const handleCaja = (tipo: TipoCajaEscaneo, etiquetas: number, etiqueta: EtiquetaCaja) => {
+    if (!cajas || !articulo) return
+    const r = buscarCaja(cajas.filas, usadas, etiqueta, tipo, etiquetas, articulo)
+    if (!r.ok) return setAlertaCaja({ titulo: r.titulo, motivo: r.motivo })
+
+    const fila = cajas.filas[r.fila]
+    const peso = fila.tipo === 'completas' ? cajas.pesoUnd : fila.peso
+    setUsadas((prev) => {
+      const next = [...prev]
+      next[r.fila] = (next[r.fila] ?? 0) + 1
+      return next
+    })
+    setEscaneadas((prev) => [...prev, { fila: r.fila, tipo: fila.tipo, etiqueta, piezas: fila.piezas, peso }])
+    setAviso(`Caja agregada (${formatWeight(peso)}). Escanea la siguiente o revisa el resumen.`)
+    setStep('resumen')
   }
 
-  const stepNumber = { origen: 1, destino: 2, resumen: 3 }[step]
+  const quitarCaja = (indice: number) => {
+    const caja = escaneadas[indice]
+    if (!caja) return
+    setUsadas((prev) => {
+      const next = [...prev]
+      next[caja.fila] = Math.max(0, (next[caja.fila] ?? 0) - 1)
+      return next
+    })
+    setEscaneadas((prev) => prev.filter((_, i) => i !== indice))
+  }
+
+  const goBack = () => {
+    setVerifyError(undefined)
+    if (step === 'caja') return setStep('resumen')
+    if (step === 'resumen' && origen && origen.articulos.length > 1) return setStep('articulo')
+    setStep(step === 'resumen' || step === 'articulo' ? 'destino' : 'origen')
+  }
+
+  const conArticulo = !!origen && origen.articulos.length > 1
+  const pasoResumen = conArticulo ? 4 : 3
+  const stepNumber = { origen: 1, destino: 2, articulo: 3, resumen: pasoResumen, caja: pasoResumen + 1 }[step]
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col">
@@ -163,7 +247,7 @@ export default function TransferenciaPalletPage() {
 
       {step !== 'origen' && (
         <div className="px-4 pt-4">
-          <RutaPallets origen={origen} destino={step === 'resumen' ? destino : undefined} />
+          <RutaPallets origen={origen} destino={step === 'destino' ? undefined : destino} />
         </div>
       )}
 
@@ -191,6 +275,10 @@ export default function TransferenciaPalletPage() {
         />
       )}
 
+      {step === 'articulo' && origen && (
+        <ArticleStep pallet={origen} initialArticle={articulo} onConfirm={elegirArticulo} />
+      )}
+
       {step === 'resumen' && origen && destino && (
         <>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pt-3 pb-4">
@@ -200,17 +288,76 @@ export default function TransferenciaPalletPage() {
             </p>
             <PalletResumenCard titulo="Pallet origen" pallet={origen} />
             <PalletResumenCard titulo="Pallet destino" pallet={destino} />
+
+            {cargando ? (
+              <div aria-busy="true" aria-label="Cargando cajas del origen" className="space-y-2">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-xl bg-border" />
+                ))}
+              </div>
+            ) : errorCarga ? (
+              <div className="space-y-2">
+                <Alert type="error">{errorCarga}</Alert>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => articulo && void cargarOrigen(articulo)}
+                  icon={<RotateCcw aria-hidden className="size-5" />}
+                >
+                  Reintentar
+                </Button>
+              </div>
+            ) : (
+              cajas && (
+                <>
+                  <CajasEscaneadasList cajas={escaneadas} onQuitar={quitarCaja} />
+                  <CajasRealesList filas={cajas.filas} pesoUnd={cajas.pesoUnd} usadas={usadas} />
+                </>
+              )
+            )}
           </div>
 
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
-            {/* TODO: siguiente paso (qué se transfiere) y endpoint de guardado, por definir */}
-            <Alert type="info">Falta definir el siguiente paso de la transferencia.</Alert>
-            <Button fullWidth disabled icon={<ArrowRight aria-hidden className="size-5" />} className="flex-row-reverse">
-              Continuar
+            {aviso && (
+              <Alert type="success" onClose={() => setAviso(undefined)}>
+                {aviso}
+              </Alert>
+            )}
+            <Button
+              fullWidth
+              disabled={!cajas || cargando}
+              onClick={() => {
+                setAviso(undefined)
+                setStep('caja')
+              }}
+              icon={<ScanQrCode aria-hidden className="size-5" />}
+            >
+              Escanear caja
             </Button>
           </div>
         </>
       )}
+
+      {step === 'caja' && cajas && (
+        <EscanearCajaStep
+          pesoUnd={formatWeight(cajas.pesoUnd)}
+          cantidades={cantidadesDisponibles(cajas.filas)}
+          onLeida={handleCaja}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!alertaCaja}
+        title={alertaCaja?.titulo ?? ''}
+        Icon={CircleAlert}
+        tone="destructive"
+        hideCancel
+        confirmLabel="Escanear de nuevo"
+        onConfirm={() => setAlertaCaja(null)}
+        onCancel={() => setAlertaCaja(null)}
+      >
+        <p>{alertaCaja?.motivo}</p>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!alerta}

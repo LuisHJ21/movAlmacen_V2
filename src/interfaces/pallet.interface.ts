@@ -66,6 +66,8 @@ export interface PalletItem {
   traza: string
   unidad: string
   pesoUnidad: number
+  /** Kg que sobran tras las cajas completas (peso % pesoUnidad), calculado por la API */
+  adicional: number
   /** Documento de referencia del ítem; null si viene vacío */
   referencia: ReferenceDocument | null
 }
