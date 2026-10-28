@@ -7,7 +7,6 @@ import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
 import { CajasEscaneadasList, type CajaEscaneada } from '@/components/transferencia-pallet/CajasEscaneadasList'
 import { CajasRealesList } from '@/components/transferencia-pallet/CajasRealesList'
 import { EscanearCajaStep } from '@/components/transferencia-pallet/EscanearCajaStep'
-import { PalletResumenCard } from '@/components/transferencia-pallet/PalletResumenCard'
 import { RutaPallets } from '@/components/transferencia-pallet/RutaPallets'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
@@ -286,8 +285,6 @@ export default function TransferenciaPalletPage() {
               <Warehouse aria-hidden className="size-4 shrink-0" />
               Ambos pallets están en el almacén <Codigo>{origen.almacen}</Codigo>
             </p>
-            <PalletResumenCard titulo="Pallet origen" pallet={origen} />
-            <PalletResumenCard titulo="Pallet destino" pallet={destino} />
 
             {cargando ? (
               <div aria-busy="true" aria-label="Cargando cajas del origen" className="space-y-2">
