@@ -15,7 +15,6 @@ interface WarehouseStepProps {
   onConfirm: (warehouse: Warehouse) => void
 }
 
-/** Destino cuando el movimiento NO requiere referencia (F_REF = 0). Tocar un almacén avanza. */
 export function WarehouseStep({ pallet, articleCode, movement, initialWarehouse = null, onConfirm }: WarehouseStepProps) {
   const { warehouses, isLoading, error, reload } = useWarehouses()
 

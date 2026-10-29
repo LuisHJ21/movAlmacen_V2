@@ -4,7 +4,6 @@ import type { PalletItem } from '@/interfaces/pallet.interface'
 import type { ValeLine, ValeLineErrors, ValePalletGroup, ValeRequest } from '@/interfaces/vale.interface'
 import { formatWeight, KG_DECIMALS } from './format'
 
-/** Redondea kilos a 4 decimales evitando errores de punto flotante (0.1 + 0.2) */
 export const roundKg = (value: number) => {
   const factor = 10 ** KG_DECIMALS
   return Math.round((value + Number.EPSILON) * factor) / factor
@@ -16,18 +15,12 @@ export function calcExtraKg(totalKg: number, unitWeight: number): number {
   return roundKg(totalKg - Math.floor(roundKg(totalKg / unitWeight)) * unitWeight)
 }
 
-/** Peso de la línea: bultos completos + kg adicionales */
 export function lineWeight(line: Pick<ValeLine, 'bultos' | 'pesoUnidad' | 'kgAdicional'>): number {
   return roundKg(line.bultos * line.pesoUnidad + line.kgAdicional)
 }
 
-/** Ítem sin bultos ni peso: no aporta al vale y se oculta */
 export const isEmptyItem = (item: Pick<PalletItem, 'bultos' | 'peso'>) => item.bultos === 0 && item.peso === 0
 
-/**
- * Construye las líneas del vale a partir de los ítems del pallet (sin los vacíos).
- * Referencia: en ingresos la de cada ítem (viene del pallet); en salidas la elegida por el operador.
- */
 export function buildValeLines(
   items: PalletItem[],
   palletCode: string,
@@ -49,16 +42,13 @@ export function buildValeLines(
 }
 
 interface ValeLineRules {
-  /** Salidas: bultos y kg editables, con tope en lo disponible */
   editable: boolean
 }
 
-/** Errores de la línea: solo las salidas se editan, así que solo ahí se validan cantidades */
 export function validateValeLine(line: ValeLine, { editable }: ValeLineRules): ValeLineErrors {
   return editable ? validateQuantities(line) : {}
 }
 
-/** Reglas de edición en salidas: no se puede sacar más de lo disponible */
 function validateQuantities(line: ValeLine): ValeLineErrors {
   const errors: ValeLineErrors = {}
   if (!Number.isInteger(line.bultos) || line.bultos < 0) errors.bultos = 'Bultos inválidos'
@@ -73,26 +63,21 @@ function validateQuantities(line: ValeLine): ValeLineErrors {
   return errors
 }
 
-/** Almacén del vale: el elegido directamente (F_REF=0) o el de la referencia (F_REF=1) */
 export function getValeWarehouse(warehouseCode: string | null | undefined, reference: ReferenceDocument | null): string | null {
   return (warehouseCode ?? reference?.almacen ?? '').trim().toUpperCase() || null
 }
 
-/** El pallet pertenece al almacén del vale (si el vale no tiene almacén, no se restringe) */
 export function palletInWarehouse(palletWarehouse: string | null, valeWarehouse: string | null): boolean {
   if (!valeWarehouse) return true
   return (palletWarehouse ?? '').trim().toUpperCase() === valeWarehouse
 }
 
-/** Salidas con referencia: el pallet debe estar en el almacén donde está proyectada la referencia */
 export const referenceMatchesPallet = (reference: ReferenceDocument, pallet: { almacen: string | null }) =>
   palletInWarehouse(pallet.almacen, getValeWarehouse(null, reference))
 
-/** Ítems del pallet que no están en el vale (ordenados como en el pallet) */
 export const excludedLines = (group: ValePalletGroup) =>
   group.disponibles.filter((p) => !group.lineas.some((l) => l.item === p.item))
 
-/** Inserta ítems respetando el orden original del pallet */
 export function mergeLines(group: ValePalletGroup, added: ValeLine[]): ValeLine[] {
   const included = new Set([...group.lineas, ...added].map((l) => l.item))
   return group.disponibles
@@ -102,7 +87,6 @@ export function mergeLines(group: ValePalletGroup, added: ValeLine[]): ValeLine[
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-/** Date → "YYYY-MM-DDTHH:mm" en hora local (formato de un input datetime-local, ej. "2017-06-01T08:30") */
 export function toApiDateTime(date: Date): string {
   return (
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
@@ -122,23 +106,18 @@ export function generateFormId(date: Date = new Date()): string {
 
 interface BuildValeRequestParams {
   date: Date
-  /** Generado una vez al cargar el vale (ver generateFormId) */
   formId: string
   movement: Movement
   articleCode: string
-  /** null si el movimiento no contabiliza (no lleva matriz) */
   matrixCode: string | null
-  /** Almacén del vale (elegido directo o el de la referencia) */
   warehouseCode: string | null
   reference: ReferenceDocument | null
   username: string
   groups: ValePalletGroup[]
   observations?: string
-  /** Plan diario elegido para el vale (uno por operación); se envía en cada ítem. null si no aplica */
   planDiarioCode?: string | null
 }
 
-/** Arma el cuerpo de POST /vale: un detalle por cada ítem incluido en el vale */
 export function buildValeRequest({
   date,
   formId,

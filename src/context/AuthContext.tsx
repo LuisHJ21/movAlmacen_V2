@@ -8,7 +8,6 @@ import { storageService } from '@/services/storage.service'
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // El token se lee primero: si expiró, getToken limpia la sesión completa
   const [token, setToken] = useState<string | null>(() => storageService.getToken())
   const [user, setUser] = useState<User | null>(() => storageService.getUser())
   const [isLoading, setIsLoading] = useState(false)
@@ -25,7 +24,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Cada respuesta de la API cuenta como actividad: renueva el token si está por vencer
   useEffect(() => {
     if (!token) return
     const interceptor = axiosClient.interceptors.response.use((response) => {

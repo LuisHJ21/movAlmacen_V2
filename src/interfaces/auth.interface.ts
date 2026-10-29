@@ -10,7 +10,6 @@ export interface LoginCredentials {
   recordar: boolean
 }
 
-/** Respuesta de POST /login (claves ya en camelCase, ver utils/mapper) */
 export interface ApiLoginResponse {
   success: boolean
   data: {
@@ -23,7 +22,6 @@ export interface ApiLoginResponse {
   expiresIn: number
 }
 
-/** Error devuelto por la API: { error, code } */
 export interface ApiError {
   error?: string
   code?: string
@@ -33,7 +31,6 @@ export interface ApiError {
 export interface LoginResult {
   token: string
   usuario: User
-  /** Fecha de expiración del token en milisegundos (epoch) */
   expiraEn: number
 }
 

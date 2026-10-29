@@ -10,7 +10,6 @@ export function UserMenu() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const logoutRef = useRef<HTMLButtonElement>(null)
 
-  // Al abrir: foco en la acción; al tocar fuera o con Escape: cierra y regresa el foco
   useEffect(() => {
     if (!open) return
     logoutRef.current?.focus()
@@ -56,7 +55,6 @@ export function UserMenu() {
           aria-label="Opciones de usuario"
           className="absolute top-full right-0 z-20 mt-1 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-stone-900/15"
         >
-          {/* Usuario en una fila: iniciales + nombre + usuario y perfil */}
           <div className="flex items-center gap-2.5 px-3 py-2.5">
             <Avatar name={user.nombre} neutral />
             <div className="min-w-0">
@@ -66,7 +64,6 @@ export function UserMenu() {
               </p>
             </div>
           </div>
-          {/* Fila de menú (no botón): lo único con color es el texto rojo de salir */}
           <button
             ref={logoutRef}
             type="button"

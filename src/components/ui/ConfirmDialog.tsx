@@ -5,7 +5,6 @@ import { Button } from './Button'
 interface ConfirmDialogProps {
   open: boolean
   title: string
-  /** Contenido bajo el título (ej. resumen de lo que se va a confirmar) */
   children?: ReactNode
   Icon?: LucideIcon
   confirmLabel?: string
@@ -13,18 +12,11 @@ interface ConfirmDialogProps {
   confirmIcon?: ReactNode
   onConfirm: () => void
   onCancel: () => void
-  /** Aviso con un solo botón (confirmLabel); Escape o tocar fuera también lo cierran con onCancel */
   hideCancel?: boolean
-  /** destructive: icono en rojo (ej. validación fallida) */
   tone?: 'primary' | 'destructive'
-  /** Botón de confirmar en rojo para acciones que descartan algo (ej. cancelar un vale) */
   destructiveConfirm?: boolean
 }
 
-/**
- * Diálogo modal de confirmación con el estilo de la app (reemplaza window.confirm).
- * Escape o tocar fuera cancela; el foco inicia en Cancelar para evitar confirmaciones accidentales.
- */
 export function ConfirmDialog({
   open,
   title,

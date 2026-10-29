@@ -4,10 +4,6 @@ import { useAsync } from './useAsync'
 
 const LARGO_CODIGO = PARTES_UBICACION.reduce((sum, p) => sum + p.largo, 0)
 
-/**
- * Opciones de ubicación del nivel indicado para el filtro (código armado hasta ahora).
- * El último nivel (profundidad) usa /ubicacion: solo ubicaciones libres o multipallet.
- */
 export function useUbicaciones(filtro: string, nivel: number) {
   const esFinal = nivel === PARTES_UBICACION.length
   const { data, ...rest } = useAsync(

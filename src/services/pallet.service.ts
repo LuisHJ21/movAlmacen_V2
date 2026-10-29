@@ -12,7 +12,6 @@ import type {
 } from '@/interfaces/pallet.interface'
 import { cleanOptional, cleanText, parseApiDateTime, toNumber } from '@/utils/format'
 
-/** dataItems/dataArticulo de /pallet/data y /pallet/datatransfer (mismo formato) → PalletData */
 function toPalletData(data: ApiPalletDataResponse['data']): PalletData {
   const article = Array.isArray(data.dataArticulo) ? null : data.dataArticulo
 
@@ -52,7 +51,6 @@ function toPalletData(data: ApiPalletDataResponse['data']): PalletData {
 }
 
 export const palletService = {
-  /** Verifica que el pallet exista. La API responde 404 (pallet_not_found) si no existe. */
   async verify(code: string): Promise<Pallet> {
     const { data } = await axiosClient.get<ApiPalletVerifyResponse>('/pallet/verify', {
       params: { pallet: code },
@@ -60,7 +58,6 @@ export const palletService = {
 
     if (!data.success) throw new Error('No fue posible verificar el pallet')
 
-    // La API devuelve campos con espacios de relleno (ej. "C3I04401            ") o en null
     const p = data.data
     return {
       codigo: cleanText(p.numPallet),
@@ -73,7 +70,6 @@ export const palletService = {
     }
   },
 
-  /** Ítems disponibles del pallet para el movimiento y artículo */
   async getData(palletCode: string, movementCode: string, articleCode: string): Promise<PalletData> {
     const { data } = await axiosClient.get<ApiPalletDataResponse>('/pallet/data', {
       params: { pallet: palletCode, tipoMov: movementCode, codart: articleCode },
@@ -83,10 +79,6 @@ export const palletService = {
     return toPalletData(data.data)
   },
 
-  /**
-   * Ítems del pallet para transferirlo al almacén destino.
-   * tipo '1': origen sin códigos de ubicación, destino = almacén actual y pallet con ubicación; si no, '0'.
-   */
   async getDataTransfer(palletCode: string, warehouseCode: string, tipo: TipoTransferencia): Promise<PalletData> {
     const { data } = await axiosClient.get<ApiPalletDataResponse>('/pallet/datatransfer', {
       params: { pallet: palletCode, tipo, almacen: warehouseCode },
@@ -95,7 +87,6 @@ export const palletService = {
     return toPalletData(data.data)
   },
 
-  /** Información y trazabilidad del pallet. La API responde 404 (pallet_not_found) si no existe. */
   async getInfo(code: string): Promise<PalletInfo> {
     const { data } = await axiosClient.get<ApiPalletInfoResponse>('/pallet/info', { params: { pallet: code } })
 

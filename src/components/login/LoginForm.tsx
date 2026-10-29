@@ -29,7 +29,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setServerError(null)
   }
 
-  // Valida el campo al salir de él
   const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
     const field = e.target.name as Field
     setErrors((prev) => ({ ...prev, [field]: validateLogin(form)[field] }))

@@ -2,7 +2,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { LoginForm } from '@/components/login/LoginForm'
 import { Logo } from '@/components/ui/Logo'
 
-// Diseñada para PDA (~400x800): una sola columna con logo y formulario
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()

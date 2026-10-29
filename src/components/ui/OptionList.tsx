@@ -4,47 +4,30 @@ import { Button } from './Button'
 
 export interface OptionItem {
   key: string
-  /** Código corto en monoespaciada (ej. "S08", "ALPTC1") */
   badge?: string
   title: string
-  /** Línea secundaria (ej. saldo, almacén) */
   meta?: ReactNode
-  /** Texto adicional para la búsqueda */
   searchText?: string
-  /** No se puede elegir (ej. almacén sin ubicaciones) */
   disabled?: boolean
 }
 
 interface OptionListProps {
   legend: string
-  /** Identifica la lista (data-list), útil para pruebas */
   name: string
   items: OptionItem[]
-  /** Opción elegida antes (se resalta al regresar a este paso) */
   selectedKey: string | null
-  /** Se llama al tocar una opción: el paso avanza de inmediato */
   onSelect: (key: string) => void
-  /** Opción tocada que está procesándose (muestra un indicador de carga) */
   pendingKey?: string | null
-  /** Bloquea las opciones (ej. mientras se procesa una) */
   disabled?: boolean
   isLoading?: boolean
   error?: string
   onRetry?: () => void
-  /** Mensaje cuando la consulta no devolvió elementos */
   emptyMessage?: string
-  /** Muestra el buscador a partir de esta cantidad de elementos */
   searchThreshold?: number
   searchPlaceholder?: string
-  /** side: código a la izquierda (códigos cortos) · top: código sobre el título (códigos largos) */
   badgePlacement?: 'side' | 'top'
 }
 
-/**
- * Lista de elección única: tocar una opción la elige y avanza (sin botón Continuar).
- * Ocupa el alto libre y se desplaza internamente.
- * Incluye estados de carga, error con reintento, vacío y buscador.
- */
 export function OptionList({
   legend,
   name,

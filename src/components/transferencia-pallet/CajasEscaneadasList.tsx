@@ -3,16 +3,11 @@ import type { EtiquetaCaja } from '@/interfaces/caja.interface'
 import type { PiezaCaja, ResumenCaja } from '@/utils/cajasReales'
 import { formatCount, formatWeight } from '@/utils/format'
 
-/** Caja escaneada y encontrada en las cajas reales del origen */
 export interface CajaEscaneada {
-  /** Índice de la fila de cajas reales a la que corresponde */
   fila: number
   tipo: ResumenCaja['tipo']
-  /** La etiqueta escaneada (una sola, aunque la caja tenga varias) */
   etiqueta: EtiquetaCaja
-  /** Registros que forman la caja (una etiqueta por pieza) */
   piezas: PiezaCaja[]
-  /** Kg de la caja */
   peso: number
 }
 
@@ -27,7 +22,6 @@ interface CajasEscaneadasListProps {
   onQuitar: (indice: number) => void
 }
 
-/** Cajas que el operador ya escaneó del origen, con total; se puede quitar una escaneada por error */
 export function CajasEscaneadasList({ cajas, onQuitar }: CajasEscaneadasListProps) {
   if (cajas.length === 0) return null
   const total = cajas.reduce((s, c) => s + c.peso, 0)

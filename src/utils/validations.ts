@@ -11,12 +11,10 @@ export function validateLogin({ usuario, clave }: LoginCredentials): LoginErrors
   return errors
 }
 
-/** Normaliza lo leído por el lector: sin espacios ni saltos y en mayúsculas */
 export function normalizeScanCode(raw: string): string {
   return raw.replace(/\s+/g, '').toUpperCase()
 }
 
-/** Código de pallet: 2 alfanuméricos + 8 dígitos (ej. PA00000001) */
 export const PALLET_CODE_PATTERN = /^[A-Z0-9]{2}\d{8}$/
 export const PALLET_CODE_LENGTH = 10
 

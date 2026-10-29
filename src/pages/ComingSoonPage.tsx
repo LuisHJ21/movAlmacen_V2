@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { ArrowLeft, Construction } from 'lucide-react'
 import { menuOptions } from '@/components/home/menuOptions'
 
-// Página temporal para las opciones del menú que aún no se construyen
 export default function ComingSoonPage() {
   const { pathname } = useLocation()
   const option = menuOptions.find((o) => o.path === pathname)

@@ -15,7 +15,6 @@ interface MatrixStepProps {
   onConfirm: (matrix: Matrix) => void
 }
 
-/** Solo aparece cuando el movimiento tiene más de una matriz para el artículo. Tocar una matriz avanza. */
 export function MatrixStep({ pallet, articleCode, movement, matrices, initialMatrix = null, onConfirm }: MatrixStepProps) {
   const handleSelect = (code: string) => {
     const matrix = matrices.find((m) => m.codigo === code)

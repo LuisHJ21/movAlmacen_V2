@@ -17,11 +17,8 @@ const kindOptions: SegmentOption<MovementKind>[] = [
 interface MovementStepProps {
   pallet: Pallet
   articleCode: string
-  /** Selección previa (al regresar desde el paso siguiente) */
   initialMovement?: Movement | null
-  /** Se llama al tocar un movimiento: consulta matriz y datos, y avanza */
   onConfirm: (movement: Movement) => void
-  /** Mientras se consultan la matriz y los datos del pallet */
   isSubmitting?: boolean
   submitError?: string
   onDismissError?: () => void
@@ -37,9 +34,7 @@ export function MovementStep({
   onDismissError,
 }: MovementStepProps) {
   const { movements, isLoading, error, reload } = useMovements()
-  // El operador elige ingreso o salida; arranca en el elegido antes o, por defecto, en ingreso
   const [kind, setKind] = useState<MovementKind>(initialMovement?.tipo ?? 'ING')
-  // Movimiento tocado: muestra el indicador de carga mientras se consulta
   const [pendingCode, setPendingCode] = useState<string | null>(null)
 
   const available = useMemo(() => movements.filter((m) => m.tipo === kind), [movements, kind])
@@ -68,7 +63,6 @@ export function MovementStep({
           value={kind}
           onChange={handleKind}
         />
-        {/* Error al consultar el movimiento tocado (ej. sin matriz) */}
         {submitError && !isSubmitting && (
           <Alert type="error" onClose={onDismissError}>
             {submitError}

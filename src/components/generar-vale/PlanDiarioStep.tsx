@@ -8,14 +8,11 @@ import { MovementChip } from './MovementChip'
 
 interface PlanDiarioStepProps {
   movement: Movement
-  /** Ítems del vale: el plan elegido se aplica a todos */
   itemCount: number
-  /** Plan elegido antes (se resalta al volver a este paso) */
   selected: PlanDiario | null
   onConfirm: (plan: PlanDiario) => void
 }
 
-/** Elegir el plan diario del vale: uno por operación, se guarda en cada ítem. Tocar un plan lo asigna y regresa. */
 export function PlanDiarioStep({ movement, itemCount, selected, onConfirm }: PlanDiarioStepProps) {
   const [planes, setPlanes] = useState<PlanDiario[]>([])
   const [isLoading, setIsLoading] = useState(true)

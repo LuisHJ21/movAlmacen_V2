@@ -27,11 +27,9 @@ import { generateFormId } from '@/utils/vale'
 
 type Step = 'origen' | 'destino' | 'scan' | 'ubicacion' | 'resumen' | 'guardado'
 
-/** Validación fallida al escanear: se muestra como aviso y el motivo queda bajo el campo */
 interface AlertaPallet {
   titulo: string
   detalle: ReactNode
-  /** Texto corto que queda bajo el campo al cerrar el aviso */
   motivo: string
 }
 
@@ -68,7 +66,6 @@ export default function TransferenciaAlmacenPage() {
   const [alerta, setAlerta] = useState<AlertaPallet | null>(null)
   const { usuario } = useAuth()
 
-  // Guardado: la fecha y los ids de formulario se generan al cargar la transferencia (un reintento envía los mismos)
   const [cargadaEn, setCargadaEn] = useState(() => new Date())
   const [formIds, setFormIds] = useState({ salida: '', ingreso: '' })
   const [confirmarGuardar, setConfirmarGuardar] = useState(false)
@@ -79,7 +76,6 @@ export default function TransferenciaAlmacenPage() {
 
   const { warehouses, isLoading, error, reload } = useWarehouses()
 
-  // Ubicación en el destino: solo si el pallet cambia de almacén y el destino maneja ubicaciones
   const requiereUbicacion = tipo === '0' && !!destino && destino.ubicaciones.length > 0
   const selector = useSelectorUbicacion(destino, step === 'ubicacion')
 
@@ -98,7 +94,6 @@ export default function TransferenciaAlmacenPage() {
     const warehouse = warehouses.find((w) => w.codigo === code)
     if (!warehouse) return
     setOrigen(warehouse)
-    // El destino no puede ser el mismo almacén
     if (destino?.codigo === warehouse.codigo) setDestino(null)
     setStep('destino')
   }
@@ -119,10 +114,8 @@ export default function TransferenciaAlmacenPage() {
       const verified = await palletService.verify(code)
       const codigo = <span className="font-mono font-semibold">{verified.codigo}</span>
 
-      // Origen temporal (sin códigos de ubicación) y pallet ya ubicado: se completa el pallet en su almacén actual
       const completaPallet = origen.ubicaciones.length === 0 && !!verified.ubicacion
 
-      // Solo se valida si el pallet tiene almacén: sin almacén asignado puede transferirse
       if (verified.almacen && verified.almacen !== origen.codigo && !completaPallet) {
         setAlerta({
           titulo: 'El pallet no está en el almacén origen',
@@ -137,7 +130,6 @@ export default function TransferenciaAlmacenPage() {
         return
       }
 
-      // Al completar un pallet ubicado, el destino tiene que ser su almacén actual (mantiene la ubicación)
       if (completaPallet && destino.codigo !== verified.almacen) {
         setAlerta({
           titulo: 'El pallet ya tiene ubicación asignada',
@@ -160,7 +152,6 @@ export default function TransferenciaAlmacenPage() {
         return
       }
 
-      // Validaciones superadas: ítems del pallet para el almacén destino
       const tipoCalculado = tipoTransferencia(origen, destino, verified)
       const data = await palletService.getDataTransfer(verified.codigo, destino.codigo, tipoCalculado)
       setTipo(tipoCalculado)
@@ -179,7 +170,6 @@ export default function TransferenciaAlmacenPage() {
     }
   }
 
-  // Al cerrar el aviso el motivo queda bajo el campo, y el código queda seleccionado para la siguiente lectura
   const cerrarAlerta = () => {
     if (alerta) setVerifyError(alerta.motivo)
     setAlerta(null)
@@ -196,7 +186,6 @@ export default function TransferenciaAlmacenPage() {
   const items = datos?.items ?? []
   const totalBultos = items.reduce((sum, i) => sum + i.bultos, 0)
   const totalPeso = items.reduce((sum, i) => sum + i.peso, 0)
-  // Se guarda con ítems y, si corresponde, con la ubicación de destino elegida
   const puedeGuardar = !!pallet && !!origen && !!destino && items.length > 0 && (!requiereUbicacion || selector.completo)
 
   const handleGuardar = async () => {
@@ -215,14 +204,12 @@ export default function TransferenciaAlmacenPage() {
           origen,
           destino,
           items,
-          // Elegida en el destino; al completar un pallet (tipo 1) se mantiene la actual; sin ubicaciones, ''
           ubicacion: requiereUbicacion ? selector.codigo : tipo === '1' ? (pallet.ubicacion ?? '') : '',
         }),
       )
       setGuardada(result)
       setStep('guardado')
     } catch (err) {
-      // Sin respuesta no se sabe si se registró: los mismos ids de formulario evitan duplicarla al reintentar
       setSaveError(
         isAxiosError(err) && !err.response
           ? 'No se recibió respuesta del servidor. La transferencia pudo haberse registrado: verifícala antes de volver a guardar.'
@@ -239,7 +226,6 @@ export default function TransferenciaAlmacenPage() {
       setVerifyError(undefined)
       return setStep('destino')
     }
-    // Ubicación (o resumen con ubicación): quita la última parte elegida; sin partes vuelve al escaneo
     if (step === 'ubicacion' || (step === 'resumen' && requiereUbicacion)) {
       return selector.retroceder() ? setStep('ubicacion') : volverAEscanear()
     }

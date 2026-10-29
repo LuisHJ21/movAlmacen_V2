@@ -20,13 +20,10 @@ import { lineWeight } from '@/utils/vale'
 interface ValeItemCardProps {
   line: ValeLine
   matrixCode: string | null
-  /** Salidas: bultos y kg adicionales editables */
   editable: boolean
   errors?: ValeLineErrors
   onChange?: (changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
-  /** Salidas: quitar el ítem del vale. Si no se pasa, no hay botón (ingresos) */
   onRemove?: () => void
-  /** Motivo por el que no se puede quitar (ej. último ítem del pallet inicial) */
   removeDisabledReason?: string
 }
 
@@ -37,7 +34,6 @@ const toneClasses: Record<Tone, string> = {
   success: 'bg-success-soft text-success',
 }
 
-/** Dato con ícono en recuadro suave: etiqueta arriba, valor (o control) abajo */
 function Field({
   Icon,
   label,
@@ -67,7 +63,6 @@ function Field({
   )
 }
 
-/** Detalle de un ítem del pallet */
 export function ValeItemCard({
   line,
   matrixCode,
@@ -89,7 +84,6 @@ export function ValeItemCard({
         hasError ? 'border-destructive ring-2 ring-destructive/20' : 'border-border'
       }`}
     >
-      {/* Cabecera: ítem, lote y peso */}
       <header
         className={`flex items-center gap-2.5 bg-primary text-on-primary ${onRemove ? 'py-1 pr-1 pl-3' : 'px-3 py-2.5'}`}
       >
@@ -132,7 +126,6 @@ export function ValeItemCard({
         </Field>
 
         {editable && (
-          // Salida: lo que el pallet tiene disponible para este ítem
           <Field Icon={PackageCheck} label="Disponible para salida" tone="success">
             <span className="font-mono">
               {formatCount(line.bultosDisponibles)} bultos · {formatWeight(line.pesoDisponible)}
@@ -141,7 +134,6 @@ export function ValeItemCard({
         )}
 
         {editable ? (
-          // Salida: controles debajo de cada etiqueta para que quepan a 400px
           <div className="grid grid-cols-2 gap-2.5 py-2.5">
             <div className="min-w-0">
               <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -189,7 +181,6 @@ export function ValeItemCard({
         )}
       </dl>
 
-      {/* Pie: aviso de solo lectura o error de validación */}
       {errorText ? (
         <p
           id={`${id}-error`}

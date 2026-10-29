@@ -4,7 +4,6 @@ import { ChevronRight, ClipboardCheck, Factory, FileInput, type LucideIcon } fro
 import type { PalletInfoItem } from '@/interfaces/pallet.interface'
 import { formatCount, formatDate, formatWeight, toSentenceCase } from '@/utils/format'
 
-/** Fila del bloque "Origen": icono, título y contenido */
 function OriginRow({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -19,10 +18,6 @@ function OriginRow({ icon: Icon, title, children }: { icon: LucideIcon; title: s
   )
 }
 
-/**
- * Ítem del pallet: artículo, peso y bultos destacados, trazabilidad y origen
- * (producción → vale de ingreso → registro en el pallet). El vale abre su detalle.
- */
 export function PalletInfoItemCard({ item }: { item: PalletInfoItem }) {
   const reference = [item.tipoReferencia, item.referencia].filter(Boolean).join(' ')
   const movement = [item.codMovimiento, toSentenceCase(item.nombreMovimiento)].filter(Boolean).join(' · ')
@@ -42,7 +37,6 @@ export function PalletInfoItemCard({ item }: { item: PalletInfoItem }) {
       aria-label={`Ítem ${item.item}: ${item.codArticulo}`}
       className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
     >
-      {/* Artículo */}
       <header className="flex items-start gap-3 px-3 pt-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-primary font-mono text-sm font-bold text-primary">
           {item.item}
@@ -53,7 +47,6 @@ export function PalletInfoItemCard({ item }: { item: PalletInfoItem }) {
         </div>
       </header>
 
-      {/* Peso y bultos */}
       <dl className="mx-3 mt-2.5 flex items-stretch overflow-hidden rounded-lg border border-primary-border bg-primary-soft">
         <div className="min-w-0 flex-1 px-3 py-2">
           <dt className="text-xs font-semibold text-primary-hover">Peso</dt>
@@ -69,7 +62,6 @@ export function PalletInfoItemCard({ item }: { item: PalletInfoItem }) {
         </div>
       </dl>
 
-      {/* Trazabilidad */}
       {trace.length > 0 && (
         <dl className="grid grid-cols-3 gap-2 px-3 pt-2.5">
           {trace.map(([label, value]) => (
@@ -81,7 +73,6 @@ export function PalletInfoItemCard({ item }: { item: PalletInfoItem }) {
         </dl>
       )}
 
-      {/* Origen */}
       {(item.codParte || item.nroVale || registered) && (
         <div className="mt-3 border-t border-border bg-muted/40">
           <h3 id={`origen-${item.item}`} className="px-3 pt-2 text-xs font-bold tracking-[0.12em] text-muted-foreground uppercase">

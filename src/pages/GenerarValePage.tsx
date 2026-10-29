@@ -71,33 +71,16 @@ const stepTitles: Record<Step, string> = {
   done: 'Vale guardado',
 }
 
-/**
- * Flujo de Generar vale:
- * escanear → artículo (si hay varios) → movimiento → matriz (solo si el movimiento contabiliza; si hay varias)
- * → almacén (fRef=0) | referencia (fRef=1; en ingresos viene del pallet) → resumen
- * En salidas: se eligen los ítems de cada pallet (si tiene más de uno), se pueden quitar ítems,
- * volver a agregar los excluidos y agregar más pallets del mismo artículo y almacén.
- * Si el movimiento solicita plan diario (fSolcitaPlan = '1'), se elige uno para el vale desde el resumen
- * y se envía en cada ítem.
- */
 
-/**
- * Selección de ítems en salidas:
- * - initial: ítems del pallet inicial al armar el vale
- * - newPallet: ítems de un pallet que se está agregando (aún no está en el vale)
- * - more: volver a agregar ítems excluidos de un pallet del vale
- */
 interface ItemPicker {
   mode: 'initial' | 'newPallet' | 'more'
   palletCode: string
   candidates: ValeLine[]
-  /** Solo en newPallet: el pallet a agregar al confirmar */
   pending?: ValePalletGroup
 }
 export default function GenerarValePage() {
   const navigate = useNavigate()
   const { usuario: user } = useAuth()
-  // Historial de pasos visitados: los pasos automáticos no se apilan, así ← regresa al último elegido
   const [history, setHistory] = useState<Step[]>(['scan'])
   const step = history[history.length - 1]
 
@@ -110,10 +93,8 @@ export default function GenerarValePage() {
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null)
   const [reference, setReference] = useState<ReferenceDocument | null>(null)
   const [referenceFromPallet, setReferenceFromPallet] = useState(false)
-  // Detalle del vale: el primer grupo es el pallet escaneado al inicio
   const [groups, setGroups] = useState<ValePalletGroup[]>([])
   const [valeDate, setValeDate] = useState(() => new Date())
-  // Id del formulario: se genera junto con la fecha de carga y se reutiliza en reintentos
   const [formId, setFormId] = useState('')
 
   const [isVerifying, setIsVerifying] = useState(false)
@@ -124,19 +105,16 @@ export default function GenerarValePage() {
   const [addError, setAddError] = useState<string>()
   const [summaryNotice, setSummaryNotice] = useState<string>()
   const [itemPicker, setItemPicker] = useState<ItemPicker | null>(null)
-  // Plan diario del vale: uno por operación, se envía en cada ítem (movimientos con fSolcitaPlan = '1')
   const [planDiario, setPlanDiario] = useState<PlanDiario | null>(null)
   const [saveNotice, setSaveNotice] = useState<{ type: 'error' | 'info'; text: string }>()
   const [isSaving, setIsSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState<string>()
   const [savedValeNumber, setSavedValeNumber] = useState<string>()
-  // Cualquier cambio en el detalle invalida el aviso de guardado
   useEffect(() => setSaveNotice(undefined), [groups])
 
   const goTo = (next: Step) => setHistory((h) => [...h, next])
   const goBack = () => setHistory((h) => h.slice(0, -1))
 
-  // Lo que depende del movimiento (y del artículo) se recalcula al cambiarlos
   const resetFromMovement = () => {
     setMatrices([])
     setMatrix(null)
@@ -150,7 +128,6 @@ export default function GenerarValePage() {
     setPlanDiario(null)
   }
 
-  // Paso 1: verificar pallet
   const handleScanned = async (code: string) => {
     setIsVerifying(true)
     setVerifyError(undefined)
@@ -163,7 +140,6 @@ export default function GenerarValePage() {
       setPallet(verified)
       setMovement(null)
       resetFromMovement()
-      // Un solo artículo: se elige automáticamente
       if (verified.articulos.length === 1) {
         setArticleCode(verified.articulos[0])
         goTo('movement')
@@ -187,7 +163,6 @@ export default function GenerarValePage() {
     goTo('movement')
   }
 
-  // Arma el detalle del vale y muestra el resumen
   const openSummary = (
     mov: Movement,
     data: PalletData,
@@ -197,8 +172,6 @@ export default function GenerarValePage() {
     if (!pallet) return
     const pool = buildValeLines(data.items, pallet.codigo, mov.tipo, selectedReference)
     const first: ValePalletGroup = { pallet, lineas: pool, disponibles: pool }
-    // Pallets agregados antes (al regresar a cambiar almacén o referencia):
-    // se conservan los del nuevo almacén, con la nueva referencia
     const valeWarehouse = getValeWarehouse(selectedWarehouseCode, selectedReference)
     const extras = groups.slice(1)
     const kept = extras.filter((g) => palletInWarehouse(g.pallet.almacen, valeWarehouse))
@@ -220,7 +193,6 @@ export default function GenerarValePage() {
     setValeDate(loadedAt)
     setFormId(generateFormId(loadedAt))
 
-    // Salida con varios ítems: primero se eligen cuáles entran al vale
     if (mov.tipo === 'SAL' && pool.length > 1) {
       setItemPicker({ mode: 'initial', palletCode: pallet.codigo, candidates: pool })
       return goTo('selectItems')
@@ -241,10 +213,8 @@ export default function GenerarValePage() {
       ),
     )
 
-  // Almacén al que pertenece el vale (elegido directo o desde la referencia)
   const valeWarehouse = getValeWarehouse(warehouse?.codigo, reference)
 
-  // Salidas: agregar otro pallet del mismo artículo y del mismo almacén
   const handleAddPallet = async (code: string) => {
     if (!movement || !articleCode) return
     if (groups.some((g) => g.pallet.codigo === code)) {
@@ -271,7 +241,6 @@ export default function GenerarValePage() {
       const pool = buildValeLines(data.items, verified.codigo, movement.tipo, reference)
       const group: ValePalletGroup = { pallet: verified, lineas: pool, disponibles: pool }
       if (pool.length > 1) {
-        // Varios ítems: elegir cuáles entran antes de sumarlo al vale
         setItemPicker({ mode: 'newPallet', palletCode: verified.codigo, candidates: pool, pending: group })
         return goTo('selectItems')
       }
@@ -284,7 +253,6 @@ export default function GenerarValePage() {
     }
   }
 
-  // Pallet por quitar, pendiente de confirmación (ultimoItem: se pidió quitar su último ítem)
   const [palletToRemove, setPalletToRemove] = useState<{ palletCode: string; ultimoItem?: string } | null>(null)
   const closeRemovePallet = useCallback(() => setPalletToRemove(null), [])
   const confirmRemovePallet = () => {
@@ -295,8 +263,6 @@ export default function GenerarValePage() {
 
   const removePallet = (palletCode: string) => setPalletToRemove({ palletCode })
 
-  // Quitar un ítem: vuelve a quedar disponible en "Agregar ítems".
-  // En un pallet agregado, quitar su último ítem quita el pallet.
   const removeLine = (palletCode: string, item: string) => {
     const group = groups.find((g) => g.pallet.codigo === palletCode)
     if (!group) return
@@ -318,10 +284,8 @@ export default function GenerarValePage() {
     goTo('selectItems')
   }
 
-  // Pallets del vale con ítems que se pueden volver a añadir
   const palletsConItems = groups.filter((g) => excludedLines(g).length > 0)
 
-  // "Añadir ítem": si solo un pallet tiene ítems por añadir se va directo a elegirlos; si no, primero el pallet
   const openAddItem = () => {
     if (palletsConItems.length === 1) return openAddItems(palletsConItems[0].pallet.codigo)
     goTo('selectPalletItems')
@@ -332,7 +296,6 @@ export default function GenerarValePage() {
     const { mode, palletCode, pending } = itemPicker
     if (mode === 'newPallet' && pending) {
       setGroups((current) => [...current, { ...pending, lineas: selected }])
-      // Regresa al resumen (saca "Elegir ítems" y "Agregar pallet" del historial)
       setHistory((h) => h.slice(0, -2))
     } else {
       setGroups((current) =>
@@ -342,20 +305,17 @@ export default function GenerarValePage() {
         }),
       )
       if (mode === 'initial') goTo('summary')
-      // Regresa al resumen (saca "Elegir ítems" y, si se pasó por ahí, "Añadir ítem")
       else setHistory((h) => h.slice(0, h.lastIndexOf('summary') + 1))
     }
     setItemPicker(null)
   }
 
-  // Un solo plan para todo el vale: al guardar se envía en cada ítem
   const handlePlan = (plan: PlanDiario) => {
     setPlanDiario(plan)
     setSaveNotice(undefined)
     goBack()
   }
 
-  // Cancelar: descarta todo lo avanzado y vuelve al inicio
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const closeConfirmCancel = useCallback(() => setConfirmCancelOpen(false), [])
   const confirmCancel = () => setConfirmCancelOpen(true)
@@ -365,8 +325,6 @@ export default function GenerarValePage() {
     goTo('addPallet')
   }
 
-  // Siguiente destino tras tener matriz: almacén, referencia por elegir o referencia del pallet.
-  // Sin referencia: si el pallet ya tiene almacén se usa ese (palletWarehouse); si no, se elige de la lista.
   const goToDestination = (mov: Movement, data: PalletData, palletWarehouse: Warehouse | null = warehouse) => {
     if (!mov.requiereReferencia) {
       return palletWarehouse ? openSummary(mov, data, null, palletWarehouse.codigo) : goTo('warehouse')
@@ -374,7 +332,6 @@ export default function GenerarValePage() {
 
     const palletReference = mov.tipo === 'ING' ? (data.items.find((i) => i.referencia)?.referencia ?? null) : null
     if (palletReference) {
-      // Ingreso: la referencia ya viene en los datos del pallet
       setReference(palletReference)
       setReferenceFromPallet(true)
       return openSummary(mov, data, palletReference, null)
@@ -383,13 +340,11 @@ export default function GenerarValePage() {
     goTo('reference')
   }
 
-  // Paso movimiento: consultar datos del pallet y, si el movimiento contabiliza (F_CONTABILIZA = 1), la matriz
   const handleMovement = async (selected: Movement) => {
     if (!pallet || !articleCode) return
     setIsPreparing(true)
     setPrepareError(undefined)
     try {
-      // Sin referencia y con almacén en el pallet: se toma ese almacén (debe existir en la lista)
       const usePalletWarehouse = !selected.requiereReferencia && !!pallet.almacen
       const [foundMatrices, data, warehouses] = await Promise.all([
         selected.contabiliza ? almacenService.getMatrices(selected.codigo, articleCode) : Promise.resolve([]),
@@ -414,7 +369,6 @@ export default function GenerarValePage() {
       setPalletData(data)
       setWarehouse(palletWarehouse)
 
-      // Sin contabilizar no hay matriz; con una sola matriz se elige automáticamente
       if (!selected.contabiliza || foundMatrices.length === 1) {
         setMatrix(foundMatrices[0] ?? null)
         goToDestination(selected, data, palletWarehouse)
@@ -435,7 +389,6 @@ export default function GenerarValePage() {
 
   const handleMatrix = (selected: Matrix) => {
     setMatrix(selected)
-    // El almacén solo se salta si viene del pallet; si no, se vuelve a elegir de la lista
     if (movement && palletData) goToDestination(movement, palletData, pallet?.almacen ? warehouse : null)
   }
 
@@ -445,26 +398,22 @@ export default function GenerarValePage() {
   }
 
   const handleReference = (selected: ReferenceDocument) => {
-    // Salida: la referencia debe estar proyectada en el almacén del pallet (ReferenceStep ya bloquea las demás)
     if (movement?.tipo === 'SAL' && pallet && !referenceMatchesPallet(selected, pallet)) return
     setReference(selected)
     setReferenceFromPallet(false)
     if (movement && palletData) openSummary(movement, palletData, selected, null)
   }
 
-  // No se puede guardar con líneas inválidas (cantidades en salidas) ni sin plan diario si el movimiento lo pide
   const lineRules = { editable: movement?.tipo === 'SAL' }
   const allLines = groups.flatMap((g) => g.lineas)
   const linesValid = allLines.every((l) => isValeLineValid(l, lineRules))
   const faltaPlan = !!movement?.solicitaPlan && !planDiario
   const totals = valeTotals(allLines)
-  // Se guarda con ítems válidos, algo de peso que mover y, si corresponde, el plan diario
   const canSave = linesValid && !faltaPlan && allLines.length > 0 && totals.weight > 0
 
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false)
   const closeConfirmSave = useCallback(() => setConfirmSaveOpen(false), [])
 
-  // Guardar: POST /vale con un detalle por ítem incluido
   const handleSave = async () => {
     if (!canSave || isSaving || !movement || !articleCode || !user) return
     if (movement.contabiliza && !matrix) return
@@ -487,10 +436,8 @@ export default function GenerarValePage() {
       )
       setSavedMessage(response?.message)
       setSavedValeNumber(response?.nroVale?.trim() || undefined)
-      // Pantalla final: no se puede regresar al resumen ya guardado
       setHistory(['done'])
     } catch (error) {
-      // Sin respuesta (caída, timeout o error del servidor sin CORS): el vale pudo registrarse igual
       const noResponse = isAxiosError(error) && !error.response
       setSaveNotice({
         type: 'error',
@@ -626,7 +573,6 @@ export default function GenerarValePage() {
                 </p>
               )
             )}
-            {/* Salidas: "Añadir ítem" (si hay ítems quitados) y "Agregar pallet" fijos en el pie junto a Guardar */}
             {movement.tipo === 'SAL' && palletsConItems.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -676,7 +622,6 @@ export default function GenerarValePage() {
         </div>
       )}
 
-      {/* Quitar un pallet agregado (o su último ítem, que lo quita del vale) */}
       <ConfirmDialog
         open={!!palletToRemove}
         title={palletToRemove?.ultimoItem ? 'Es el último ítem del pallet' : '¿Quitar el pallet del vale?'}
@@ -713,7 +658,6 @@ export default function GenerarValePage() {
           })()}
       </ConfirmDialog>
 
-      {/* Cancelar: descarta todo lo avanzado y vuelve al inicio */}
       <ConfirmDialog
         open={confirmCancelOpen}
         title="¿Cancelar este vale?"
@@ -745,7 +689,6 @@ export default function GenerarValePage() {
         </p>
       </ConfirmDialog>
 
-      {/* Confirmación antes de registrar el vale */}
       <ConfirmDialog
         open={confirmSaveOpen}
         title="¿Guardar el vale?"
@@ -836,7 +779,6 @@ export default function GenerarValePage() {
 
       {step === 'selectItems' && itemPicker && (
         <ItemPickerStep
-          // Nueva instancia por pallet/modo para reiniciar la selección
           key={`${itemPicker.mode}-${itemPicker.palletCode}`}
           palletCode={itemPicker.palletCode}
           candidates={itemPicker.candidates}

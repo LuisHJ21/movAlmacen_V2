@@ -2,14 +2,9 @@ import type { LoginResult } from '@/interfaces/auth.interface'
 import { authService } from './auth.service'
 import { storageService } from './storage.service'
 
-/** Se renueva cuando al token le quedan menos de 15 minutos */
 const RENEW_MARGIN_MS = 15 * 60 * 1000
 
 let renewing: Promise<void> | null = null
-/**
- * Vencimiento que la API ya no extiende: llegó al tope de sesión (JWT_MAX_SESSION).
- * Evita pedir /refresh en cada petición durante los últimos minutos.
- */
 let cappedAt: number | null = null
 
 /**
@@ -25,14 +20,11 @@ export function renewSessionIfNeeded(onRenewed: (result: LoginResult) => void): 
   renewing = authService
     .refresh()
     .then((result) => {
-      // Si el vencimiento casi no avanzó, la API llegó al tope: no se vuelve a intentar con este token
       if (result.expiraEn - expiresAt < 60 * 1000) cappedAt = result.expiraEn
       storageService.updateSession(result)
       onRenewed(result)
     })
-    .catch(() => {
-      /* Error de red: se reintenta con la siguiente petición */
-    })
+    .catch(() => undefined)
     .finally(() => {
       renewing = null
     })

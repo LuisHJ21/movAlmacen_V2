@@ -5,12 +5,9 @@ import { ScanInput } from '@/components/ui/ScanInput'
 import { normalizeScanCode, validatePalletCode } from '@/utils/validations'
 
 interface ScanPalletStepProps {
-  /** Recibe el código ya normalizado y con formato válido */
   onScanned: (palletCode: string) => void | Promise<void>
   isLoading?: boolean
-  /** Error devuelto al verificar el pallet (ej. no existe) */
   serverError?: string
-  /** Se llama al editar el código, para limpiar el error del servidor */
   onCodeChange?: () => void
   title?: string
   description?: string
@@ -30,10 +27,8 @@ export function ScanPalletStep({
   const [error, setError] = useState<string>()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Tras un error del servidor: selecciona el código para que la siguiente lectura lo reemplace
   useEffect(() => {
     if (serverError && !isLoading) {
-      // El campo estuvo deshabilitado durante la consulta y perdió el foco
       inputRef.current?.focus()
       inputRef.current?.select()
     }
@@ -57,7 +52,6 @@ export function ScanPalletStep({
     void submit()
   }
 
-  // Tocar un área vacía devuelve el foco al campo para que el lector pueda escribir
   const keepFocus = (e: MouseEvent<HTMLFormElement>) => {
     const target = e.target as HTMLElement
     if (!target.closest('input, button, a, label')) inputRef.current?.focus()

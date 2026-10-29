@@ -7,16 +7,13 @@ import { StepFooter } from './StepFooter'
 
 interface ItemPickerStepProps {
   palletCode: string
-  /** Ítems que se pueden elegir (sin los vacíos) */
   candidates: ValeLine[]
-  /** Al inicio todos marcados; al agregar ítems, ninguno */
   initiallySelected?: boolean
   intro: string
   confirmLabel: (count: number) => string
   onConfirm: (selected: ValeLine[]) => void
 }
 
-/** Salidas: elegir qué ítems del pallet entran al vale */
 export function ItemPickerStep({
   palletCode,
   candidates,

@@ -2,7 +2,6 @@ import { Package, Scan } from 'lucide-react'
 
 type Variant = 'stacked' | 'inline'
 
-/** Ícono: pallet/caja dentro de un marco de escaneo. onPrimary: invertido para fondo naranja */
 function LogoMark({ size, onPrimary = false }: { size: 'md' | 'lg'; onPrimary?: boolean }) {
   const box = size === 'lg' ? 'size-16 rounded-2xl' : 'size-10 rounded-xl'
   const frame = size === 'lg' ? 'size-11' : 'size-7'
@@ -38,7 +37,6 @@ function Wordmark({ size, onPrimary = false }: { size: 'md' | 'lg'; onPrimary?: 
   )
 }
 
-/** Logo de MovAlmacén. stacked: login · inline: Navbar. onPrimary: sobre la cabecera naranja */
 export function Logo({ variant = 'inline', onPrimary = false }: { variant?: Variant; onPrimary?: boolean }) {
   if (variant === 'stacked') {
     return (

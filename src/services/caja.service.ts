@@ -3,10 +3,6 @@ import type { ApiLeerCajaResponse, EtiquetaCaja } from '@/interfaces/caja.interf
 import { cleanText } from '@/utils/format'
 
 export const cajaService = {
-  /**
-   * Lee el QR de la etiqueta de una caja. Si viene cifrado (solo dígitos) la API lo desencripta.
-   * La API responde 400 (qr_invalido) si no tiene el formato de una etiqueta de caja.
-   */
   async leer(qr: string): Promise<EtiquetaCaja> {
     const { data } = await axiosClient.post<ApiLeerCajaResponse>('/caja/leer', { qr })
     if (!data.success) throw new Error('No fue posible leer la etiqueta')

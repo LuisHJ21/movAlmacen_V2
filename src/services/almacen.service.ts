@@ -14,12 +14,10 @@ import { cleanText, toNumber } from '@/utils/format'
 export interface ReferenceQuery {
   articleCode: string
   movementCode: string
-  /** Solo para ingresos; en salidas va vacío */
   docNumber?: string
 }
 
 export const almacenService = {
-  /** Movimientos de almacén: 'I' ingresos, 'S' salidas, '' ambos */
   async getMovementTypes(tipoMov: MovementTypeFilter = ''): Promise<Movement[]> {
     const { data } = await axiosClient.get<ApiMovementTypesResponse>('/almacen/tipo-movimiento', {
       params: { tipoMov },
@@ -40,7 +38,6 @@ export const almacenService = {
       .sort((a, b) => a.codigo.localeCompare(b.codigo))
   },
 
-  /** Matrices contables del movimiento para el artículo; [] si la API responde 404 (matriz_not_found) */
   async getMatrices(movementCode: string, articleCode: string): Promise<Matrix[]> {
     try {
       const { data } = await axiosClient.get<ApiMatricesResponse>('/almacen/matriz', {
@@ -72,7 +69,6 @@ export const almacenService = {
     }))
   },
 
-  /** Documentos de referencia. La API responde 404 (references_not_found) si no hay. */
   async getReferences({ articleCode, movementCode, docNumber = '' }: ReferenceQuery): Promise<ReferenceDocument[]> {
     const { data } = await axiosClient.get<ApiReferencesResponse>('/references', {
       params: { codArt: articleCode, movAlm: movementCode, nroDoc: docNumber },
@@ -80,7 +76,6 @@ export const almacenService = {
 
     if (!data.success) throw new Error('No fue posible obtener los documentos de referencia')
 
-    // La API devuelve campos con espacios de relleno (ej. "OT  ") y algunos en null (ej. otPlan)
     return data.data.map((r): ReferenceDocument => ({
       nroOrden: cleanText(r.nroOrden),
       descripcion: cleanText(r.descripcion),

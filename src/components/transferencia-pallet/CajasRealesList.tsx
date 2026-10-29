@@ -4,9 +4,7 @@ import { formatCount, formatQuantity, formatWeight } from '@/utils/format'
 
 interface CajasRealesListProps {
   filas: ResumenCaja[]
-  /** Peso de una caja completa */
   pesoUnd: number
-  /** Cajas ya escaneadas de cada fila */
   usadas?: number[]
 }
 
@@ -25,7 +23,6 @@ const titulo = (f: ResumenCaja) =>
         ? `Caja incompleta · ${f.aportes.length} ítems`
         : 'Caja incompleta'
 
-/** Cajas reales del pallet origen según la simulación: completas por ítem, mixtas e incompletas */
 export function CajasRealesList({ filas, pesoUnd, usadas = [] }: CajasRealesListProps) {
   const totalCajas = filas.reduce((s, f) => s + f.cajas, 0)
   const totalPeso = filas.reduce((s, f) => s + f.peso, 0)

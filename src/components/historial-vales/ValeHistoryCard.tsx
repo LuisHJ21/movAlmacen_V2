@@ -3,15 +3,10 @@ import { ArrowDownToLine, ArrowUpFromLine, ChevronRight, FileText } from 'lucide
 import type { ValeHistoryItem } from '@/interfaces/vale.interface'
 import { formatTime, toSentenceCase } from '@/utils/format'
 
-/** Icono del vale según el movimiento (ingreso, salida o desconocido) */
 export function valeKindIcon(vale: ValeHistoryItem) {
   return vale.tipo === 'ING' ? ArrowDownToLine : vale.tipo === 'SAL' ? ArrowUpFromLine : FileText
 }
 
-/**
- * Vale del historial: número, hora, movimiento, referencia y almacén. Los anulados se ven atenuados.
- * Abre el detalle y le pasa el vale en el state (así el detalle sabe si está anulado sin consultar).
- */
 export function ValeHistoryCard({ vale }: { vale: ValeHistoryItem }) {
   const Icon = valeKindIcon(vale)
   const reference = [vale.tipoReferencia, vale.nroReferencia].filter(Boolean).join(' ')

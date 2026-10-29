@@ -4,7 +4,6 @@ import type { ApiPlanesDiariosResponse, PlanDiario } from '@/interfaces/planDiar
 import { cleanText } from '@/utils/format'
 
 export const planDiarioService = {
-  /** Planes diarios activos; [] si la API responde 404 (pland_empty) */
   async getActivos(): Promise<PlanDiario[]> {
     try {
       const { data } = await axiosClient.get<ApiPlanesDiariosResponse>('/plandiario')

@@ -12,11 +12,9 @@ interface SegmentedControlProps<T extends string> {
   options: SegmentOption<T>[]
   value: T | null
   onChange: (value: T) => void
-  /** Texto de ayuda bajo las opciones (ej. por qué una está deshabilitada) */
   hint?: string
 }
 
-/** Selector de una opción entre pocas (botones grandes tipo radio) */
 export function SegmentedControl<T extends string>({
   label,
   options,

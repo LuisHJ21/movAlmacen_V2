@@ -7,11 +7,9 @@ interface StepFooterProps {
   label?: string
   isLoading?: boolean
   loadingLabel?: string
-  /** Error al continuar (ej. consulta fallida); se muestra sobre el botón */
   error?: string
 }
 
-/** Barra inferior fija de cada paso con el botón Continuar (type="submit") */
 export function StepFooter({ disabled, label = 'Continuar', isLoading = false, loadingLabel, error }: StepFooterProps) {
   return (
     <div className="space-y-2 border-t border-border bg-card px-4 py-3">

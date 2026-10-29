@@ -8,7 +8,6 @@ interface ArticleStepProps {
   onConfirm: (articleCode: string) => void
 }
 
-/** Solo aparece cuando el pallet contiene más de un artículo. Tocar un artículo avanza. */
 export function ArticleStep({ pallet, initialArticle = null, onConfirm }: ArticleStepProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">

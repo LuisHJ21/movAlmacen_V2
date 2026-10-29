@@ -13,7 +13,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype
 }
 
-/** Aplica toCamelCase a todas las claves, recorriendo objetos y arreglos anidados. Los valores no cambian. */
 export function camelizeKeys<T = unknown>(value: unknown): T {
   if (Array.isArray(value)) return value.map((item) => camelizeKeys(item)) as T
   if (!isPlainObject(value)) return value as T

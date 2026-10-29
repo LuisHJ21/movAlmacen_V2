@@ -25,11 +25,9 @@ import { buscarCaja, cantidadesDisponibles, type TipoCajaEscaneo } from '@/utils
 
 type Step = 'origen' | 'destino' | 'articulo' | 'resumen' | 'caja' | 'guardado'
 
-/** Validación fallida al escanear: se muestra como aviso y el motivo queda bajo el campo */
 interface AlertaPallet {
   titulo: string
   detalle: ReactNode
-  /** Texto corto que queda bajo el campo al cerrar el aviso */
   motivo: string
 }
 
@@ -44,12 +42,6 @@ const stepTitles: Record<Step, string> = {
 
 const Codigo = ({ children }: { children: ReactNode }) => <span className="font-mono font-bold">{children}</span>
 
-/**
- * Transferencia entre pallets: escanear pallet origen → escanear pallet destino → artículo (si el origen
- * tiene varios) → resumen. Ambos deben tener almacén asignado y estar en el mismo almacén; el destino no
- * puede ser el mismo origen. En el resumen se traen los ítems del origen (/pallet/data sin movimiento)
- * y se simulan sus cajas reales (utils/cajasReales).
- */
 export default function TransferenciaPalletPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('origen')
@@ -62,13 +54,11 @@ export default function TransferenciaPalletPage() {
   const [cajas, setCajas] = useState<{ filas: ResumenCaja[]; pesoUnd: number } | null>(null)
   const [cargando, setCargando] = useState(false)
   const [errorCarga, setErrorCarga] = useState<string>()
-  // Cajas escaneadas: usadas[i] = cajas de la fila i ya escaneadas
   const [usadas, setUsadas] = useState<number[]>([])
   const [escaneadas, setEscaneadas] = useState<CajaEscaneada[]>([])
   const [alertaCaja, setAlertaCaja] = useState<{ titulo: string; motivo: string } | null>(null)
   const [aviso, setAviso] = useState<string>()
   const { usuario } = useAuth()
-  // Guardado (POST /transferPallet)
   const [confirmarGuardar, setConfirmarGuardar] = useState(false)
   const cerrarConfirmar = useCallback(() => setConfirmarGuardar(false), [])
   const [isSaving, setIsSaving] = useState(false)
@@ -92,7 +82,6 @@ export default function TransferenciaPalletPage() {
       )
       setStep('guardado')
     } catch (err) {
-      // Sin respuesta no se sabe si se registró: se avisa antes de reintentar
       setSaveError(
         isAxiosError(err) && !err.response
           ? 'No se recibió respuesta del servidor. La transferencia pudo haberse registrado: verifícala antes de volver a guardar.'
@@ -136,7 +125,6 @@ export default function TransferenciaPalletPage() {
             },
       (p) => {
         setOrigen(p)
-        // Un destino escaneado antes deja de valer si ya no coincide con el nuevo origen
         if (destino && (destino.codigo === p.codigo || destino.almacen !== p.almacen)) setDestino(undefined)
         setStep('destino')
       },
@@ -182,7 +170,6 @@ export default function TransferenciaPalletPage() {
       },
       (p) => {
         setDestino(p)
-        // Varios artículos en el origen: se elige cuál transferir antes de traer sus datos
         if (origen.articulos.length > 1) return setStep('articulo')
         elegirArticulo(origen.articulos[0] ?? '')
       },
@@ -195,7 +182,6 @@ export default function TransferenciaPalletPage() {
     void cargarOrigen(codigo)
   }
 
-  // Datos del origen (/pallet/data sin movimiento) y simulación de sus cajas reales
   const cargarOrigen = async (codigoArticulo: string) => {
     if (!origen) return
     setCargando(true)
@@ -217,13 +203,11 @@ export default function TransferenciaPalletPage() {
     }
   }
 
-  // Al cerrar el aviso el motivo queda bajo el campo, y el código queda seleccionado para la siguiente lectura
   const cerrarAlerta = () => {
     if (alerta) setVerifyError(alerta.motivo)
     setAlerta(null)
   }
 
-  // Etiqueta leída: se busca una caja real de esa cantidad de registros que la incluya y, si no se escaneó, se suma
   const handleCaja = (tipo: TipoCajaEscaneo, etiquetas: number, etiqueta: EtiquetaCaja) => {
     if (!cajas || !articulo) return
     const r = buscarCaja(cajas.filas, usadas, etiqueta, tipo, etiquetas, articulo)
@@ -370,7 +354,6 @@ export default function TransferenciaPalletPage() {
                 </Alert>
               )
             )}
-            {/* Con cajas escaneadas: Transferir pasa a ser la acción principal */}
             <div className={escaneadas.length > 0 ? 'grid grid-cols-2 gap-2' : ''}>
               <Button
                 fullWidth

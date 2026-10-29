@@ -10,7 +10,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       return true
     }
   } catch {
-    /* sigue con el respaldo */
+    // Continúa con el respaldo de execCommand
   }
 
   const textarea = document.createElement('textarea')

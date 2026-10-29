@@ -3,12 +3,10 @@ import type { PlanDiario } from '@/interfaces/planDiario.interface'
 
 interface PlanDiarioFieldProps {
   plan: PlanDiario | null
-  /** Sin plan al intentar guardar: se marca en rojo */
   pendiente?: boolean
   onPick: () => void
 }
 
-/** Plan diario del vale (uno por operación, se aplica a todos los ítems): tocar abre la lista para elegirlo */
 export function PlanDiarioField({ plan, pendiente = false, onPick }: PlanDiarioFieldProps) {
   return (
     <button

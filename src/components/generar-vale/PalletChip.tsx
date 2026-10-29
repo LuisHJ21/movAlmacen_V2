@@ -4,12 +4,10 @@ import { formatCount, formatWeight } from '@/utils/format'
 
 interface PalletChipProps {
   pallet: Pallet
-  /** Artículo elegido del pallet */
   articleCode?: string | null
   articleDescription?: string
 }
 
-/** Resumen compacto del pallet en curso (pasos 2 en adelante) */
 export function PalletChip({ pallet, articleCode, articleDescription }: PalletChipProps) {
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2">

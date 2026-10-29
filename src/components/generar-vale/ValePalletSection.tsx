@@ -8,17 +8,13 @@ import { ValeItemCard } from './ValeItemCard'
 interface ValePalletSectionProps {
   group: ValePalletGroup
   matrix: Matrix | null
-  /** Salidas: editar, quitar y agregar ítems */
   editable: boolean
-  /** Pallet inicial: no se quita y debe conservar al menos un ítem */
   isInitial: boolean
   onLineChange: (index: number, changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
   onRemoveLine?: (item: string) => void
-  /** Solo los pallets agregados se pueden quitar */
   onRemove?: () => void
 }
 
-/** Cabecera de detalle por pallet + sus ítems + total del pallet */
 export function ValePalletSection({
   group,
   matrix,

@@ -10,14 +10,12 @@ interface TransferenciaGuardadaProps {
   pallet: string
   origen: string
   destino: string
-  /** Nueva ubicación en el destino, si se eligió */
   ubicacion?: string
   bultos: number
   peso: number
   date: Date
 }
 
-/** Vale generado por la transferencia, con botón para copiar su número */
 function ValeRow({ Icon, titulo, almacen, numero }: { Icon: LucideIcon; titulo: string; almacen: string; numero: string }) {
   const [copiado, setCopiado] = useState<'idle' | 'ok' | 'error'>('idle')
 
@@ -58,7 +56,6 @@ function ValeRow({ Icon, titulo, almacen, numero }: { Icon: LucideIcon; titulo: 
   )
 }
 
-/** Comprobante de la transferencia: vale de salida y de ingreso, más el resumen de lo transferido */
 export function TransferenciaGuardada({ vales, pallet, origen, destino, ubicacion, bultos, peso, date }: TransferenciaGuardadaProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">

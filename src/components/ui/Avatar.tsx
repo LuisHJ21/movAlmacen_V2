@@ -7,7 +7,6 @@ const sizes: Record<Size, string> = {
   lg: 'size-16 text-xl',
 }
 
-/** Esfera con las iniciales del usuario. neutral: gris, para no competir con acciones de color (ej. menú de usuario) */
 export function Avatar({ name, size = 'sm', neutral = false }: { name: string; size?: Size; neutral?: boolean }) {
   return (
     <span

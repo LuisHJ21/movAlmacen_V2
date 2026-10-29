@@ -25,7 +25,6 @@ function Extremo({ titulo, pallet, alinear = 'left' }: { titulo: string; pallet?
   )
 }
 
-/** Pallet origen → pallet destino; el extremo aún sin escanear aparece vacío */
 export function RutaPallets({ origen, destino }: RutaPalletsProps) {
   return (
     <div

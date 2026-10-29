@@ -5,20 +5,13 @@ interface ScanInputProps {
   label: string
   value: string
   onChange: (value: string) => void
-  /** Se dispara con Enter (lo envía el lector al terminar de leer) */
   onSubmit: () => void
   placeholder?: string
-  /** Ayuda bajo el campo (se oculta cuando hay error) */
   hint?: string
   error?: string
   disabled?: boolean
 }
 
-/**
- * Campo para lectores de código de barras de PDA (modo teclado).
- * Por defecto no abre el teclado en pantalla (inputMode="none");
- * "Escribir" lo habilita para captura manual.
- */
 export const ScanInput = forwardRef<HTMLInputElement, ScanInputProps>(
   ({ label, value, onChange, onSubmit, placeholder = 'Esperando lectura…', hint, error, disabled }, ref) => {
     const inputId = useId()
@@ -38,7 +31,6 @@ export const ScanInput = forwardRef<HTMLInputElement, ScanInputProps>(
 
     const toggleManual = () => {
       setManual((v) => !v)
-      // Re-enfoca para que el cambio de inputMode abra/cierre el teclado
       requestAnimationFrame(() => {
         inputRef.current?.blur()
         inputRef.current?.focus()

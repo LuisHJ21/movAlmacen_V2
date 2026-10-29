@@ -19,7 +19,6 @@ export interface MenuOption {
 
 export interface MenuSection {
   title: string
-  /** Color de las tarjetas de la sección */
   tone: MenuTone
   options: MenuOption[]
 }

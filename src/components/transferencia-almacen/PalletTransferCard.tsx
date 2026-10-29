@@ -8,19 +8,15 @@ import { separarCodigoUbicacion } from '@/utils/ubicacion'
 interface NuevaUbicacion {
   codigo: string
   almacen: string
-  /** Ubicación multipallet */
   multiple?: boolean
-  /** Vuelve a los pasos de ubicación para cambiarla */
   onCambiar?: () => void
 }
 
 interface PalletTransferCardProps {
   pallet: Pallet
-  /** Ubicación elegida en el destino: se muestra al lado de la actual */
   nuevaUbicacion?: NuevaUbicacion
 }
 
-/** "C3D15204" → C3·D·15·2·04 (partes separadas, compacto para media columna) */
 function CodigoCompacto({ codigo, className = '' }: { codigo: string; className?: string }) {
   return (
     <span className={`font-mono text-base font-bold whitespace-nowrap ${className}`}>
@@ -46,10 +42,6 @@ function Columna({ titulo, icono, children }: { titulo: string; icono: ReactNode
   )
 }
 
-/**
- * Pallet a transferir con su ubicación actual. Con nuevaUbicacion, la actual y la nueva se muestran
- * lado a lado (actual → nueva); sin ella, la actual va completa por partes.
- */
 export function PalletTransferCard({ pallet, nuevaUbicacion }: PalletTransferCardProps) {
   return (
     <section aria-label={`Pallet ${pallet.codigo}`} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -63,7 +55,6 @@ export function PalletTransferCard({ pallet, nuevaUbicacion }: PalletTransferCar
 
       {nuevaUbicacion ? (
         <div className="flex items-stretch gap-2 border-t border-border p-2">
-          {/* Actual */}
           <div className="flex min-w-0 flex-1 rounded-lg bg-muted/60 px-2.5 py-2 text-muted-foreground">
             <Columna titulo="Actual" icono={<MapPin aria-hidden className="size-3.5" />}>
               {pallet.ubicacion ? (
@@ -77,7 +68,6 @@ export function PalletTransferCard({ pallet, nuevaUbicacion }: PalletTransferCar
 
           <ArrowRight aria-hidden className="size-4 shrink-0 self-center text-primary" />
 
-          {/* Nueva */}
           <div className="flex min-w-0 flex-1 rounded-lg border border-primary-border bg-primary-soft px-2.5 py-2 text-primary-hover">
             <Columna titulo="Nueva" icono={<MapPinned aria-hidden className="size-3.5" />}>
               <CodigoCompacto codigo={nuevaUbicacion.codigo} className="text-foreground" />

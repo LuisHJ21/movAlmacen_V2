@@ -10,7 +10,6 @@ interface NumberStepperProps {
   describedBy?: string
 }
 
-/** Entero con botones − / + de 48px (fácil de operar en PDA con guantes) */
 export function NumberStepper({ label, value, onChange, min = 0, max = Infinity, invalid, describedBy }: NumberStepperProps) {
   const set = (next: number) => onChange(Math.min(max, Math.max(min, next)))
   const buttonClass =

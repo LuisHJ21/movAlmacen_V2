@@ -9,12 +9,10 @@ import { UbicacionGrid } from './UbicacionGrid'
 interface SelectorUbicacionProps {
   selector: SelectorUbicacionState
   almacen: Warehouse
-  /** Etiqueta junto al almacén (ej. "Mismo almacén") */
   etiqueta?: ReactNode
   onPasoAnterior: () => void
 }
 
-/** Paso de armado de la ubicación: almacén, código armado (tocable) y grilla de opciones del paso en curso */
 export function SelectorUbicacion({ selector, almacen, etiqueta, onPasoAnterior }: SelectorUbicacionProps) {
   const { paso, codigo, parte, opciones, isLoading, error, reload, elegir, irAParte, automaticas, hayEditables } =
     selector

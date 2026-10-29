@@ -13,10 +13,8 @@ import AsignarUbicacionPage from '@/pages/AsignarUbicacionPage'
 import TransferenciaAlmacenPage from '@/pages/TransferenciaAlmacenPage'
 import TransferenciaPalletPage from '@/pages/TransferenciaPalletPage'
 
-/** Rutas del menú que ya tienen página propia */
 const builtPaths = ['/generar-vale', '/historial-vales', '/detalle-pallet', '/asignar-ubicacion', '/transferencia-almacen', '/transferencia-pallet']
 
-/** Solo usuarios autenticados; si no, redirige al login recordando la ruta */
 function ProtectedRoute() {
   const { autenticado: isAuthenticated } = useAuth()
   const location = useLocation()
@@ -24,7 +22,6 @@ function ProtectedRoute() {
   return <Outlet />
 }
 
-/** Solo usuarios sin sesión (ej. login). Al iniciar sesión vuelve a la ruta que se intentó abrir. */
 function PublicRoute() {
   const { autenticado: isAuthenticated } = useAuth()
   const location = useLocation()
@@ -50,7 +47,6 @@ export default function App() {
             <Route path="/asignar-ubicacion" element={<AsignarUbicacionPage />} />
             <Route path="/transferencia-almacen" element={<TransferenciaAlmacenPage />} />
             <Route path="/transferencia-pallet" element={<TransferenciaPalletPage />} />
-            {/* Opciones aún sin página */}
             {menuOptions
               .filter(({ path }) => !builtPaths.includes(path))
               .map(({ path }) => (

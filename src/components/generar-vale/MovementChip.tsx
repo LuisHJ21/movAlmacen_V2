@@ -2,7 +2,6 @@ import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
 import type { Movement } from '@/interfaces/movimiento.interface'
 import { toSentenceCase } from '@/utils/format'
 
-/** Resumen compacto del movimiento elegido (pasos 3 en adelante) */
 export function MovementChip({ movement }: { movement: Movement }) {
   const Icon = movement.tipo === 'ING' ? ArrowDownToLine : ArrowUpFromLine
   return (

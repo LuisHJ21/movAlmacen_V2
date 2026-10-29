@@ -1,7 +1,6 @@
 import type { EtiquetaCaja } from '@/interfaces/caja.interface'
 import type { PiezaCaja, ResumenCaja } from './cajasReales'
 
-/** Caja completa (1 etiqueta, o varias si es mixta) o caja de saldo (no llega al peso del artículo) */
 export type TipoCajaEscaneo = 'completa' | 'saldo'
 
 /**
@@ -18,7 +17,6 @@ export function normalizarFecha(valor: string): string {
   return v.toUpperCase()
 }
 
-/** Lote, traza, fecha y OT: lo que identifica a qué ítem del pallet pertenece una etiqueta */
 const clave = (x: Pick<PiezaCaja, 'lote' | 'traza' | 'fecha' | 'ot'>) =>
   [x.lote.trim().toUpperCase(), x.traza.trim().toUpperCase(), normalizarFecha(x.fecha), x.ot.trim().toUpperCase()].join('|')
 
@@ -27,10 +25,6 @@ export type ResultadoCaja = { ok: true; fila: number } | { ok: false; titulo: st
 const tipoEsperado = (tipo: TipoCajaEscaneo, etiquetas: number): ResumenCaja['tipo'] =>
   tipo === 'saldo' ? 'incompleta' : etiquetas > 1 ? 'mixta' : 'completas'
 
-/**
- * Cuántas etiquetas (registros) tienen las cajas reales de cada tipo: para ofrecer solo cantidades que existen.
- * Ej. { completa: [1, 2], saldo: [1] }
- */
 export function cantidadesDisponibles(filas: ResumenCaja[]): Record<TipoCajaEscaneo, number[]> {
   const de = (tipos: ResumenCaja['tipo'][]) =>
     [...new Set(filas.filter((f) => tipos.includes(f.tipo)).map((f) => f.piezas.length))].sort((a, b) => a - b)
@@ -77,7 +71,6 @@ export function buscarCaja(
     }
   }
 
-  // Sin coincidencia: caja no encontrada. Si la etiqueta sí está en el pallet, se indica en qué caja para corregir
   const conEtiquetas = (n: number) => `${n} ${n === 1 ? 'etiqueta' : 'etiquetas'}`
   const nombre = tipo === 'saldo' ? 'caja de saldo' : 'caja completa'
   const enCajas = [

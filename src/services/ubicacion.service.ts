@@ -10,11 +10,6 @@ import type {
 import { cleanText, toNumber } from '@/utils/format'
 
 export const ubicacionService = {
-  /**
-   * Opciones del siguiente nivel con su disponibilidad.
-   * filtro: código armado hasta ahora (admite varios separados por coma, ej. "C1,P1").
-   * La API responde 404 (ubicacion_not_found) si no hay: se devuelve [].
-   */
   async filtrar(filtro: string, nivel: number): Promise<UbicacionOpcion[]> {
     try {
       const { data } = await axiosClient.get<ApiUbicacionFiltroResponse>('/ubicacion/filtro', {
@@ -34,10 +29,6 @@ export const ubicacionService = {
     }
   },
 
-  /**
-   * Ubicaciones finales (profundidad) que pueden recibir el pallet: libres o multipallet.
-   * La API busca por "contiene" (LIKE '%filtro%'): se dejan solo las que empiezan con el código armado.
-   */
   async finales(prefijo: string, largo: number): Promise<UbicacionOpcion[]> {
     try {
       const { data } = await axiosClient.get<ApiUbicacionesResponse>('/ubicacion', { params: { filtro: prefijo } })
@@ -58,7 +49,6 @@ export const ubicacionService = {
     }
   },
 
-  /** Asigna (o reasigna) la ubicación del pallet. Lanza error si la API responde con error o success = false. */
   async asignar(payload: AsignarUbicacionRequest): Promise<void> {
     const { data } = await axiosClient.post<ApiAsignarUbicacionResponse>('/ubicacion', payload)
     if (!data?.success) throw new Error(data?.message ?? 'No fue posible asignar la ubicación')

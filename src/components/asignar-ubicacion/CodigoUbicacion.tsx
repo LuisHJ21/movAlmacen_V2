@@ -1,23 +1,14 @@
 import { PARTES_UBICACION, separarCodigoUbicacion } from '@/utils/ubicacion'
 
 interface CodigoUbicacionProps {
-  /** Código armado hasta ahora (ej. "C1D01") */
   codigo: string
-  /** Resalta la casilla del paso en curso */
   pasoActual?: number
   size?: 'md' | 'lg'
-  /** Si se indica, las partes elegidas se pueden tocar para volver a elegirlas */
   onEditar?: (indice: number) => void
-  /** Partes que se eligieron solas (única opción): no se pueden cambiar */
   automaticas?: boolean[]
-  /** soft: casillas claras y más bajas, para mostrar una ubicación sin destacarla tanto */
   variant?: 'solid' | 'soft'
 }
 
-/**
- * Código de ubicación por partes (Código · Lado · Col. · Nivel · Prof.); las casillas vacías aún no se eligen.
- * Con onEditar, tocar una parte elegida vuelve a ese paso para corregirla.
- */
 export function CodigoUbicacion({
   codigo,
   pasoActual,

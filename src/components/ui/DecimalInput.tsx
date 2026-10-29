@@ -7,17 +7,11 @@ interface DecimalInputProps {
   suffix?: string
   invalid?: boolean
   describedBy?: string
-  /** Máximo de decimales que se pueden escribir */
   maxDecimals?: number
 }
 
 const toText = (n: number) => (Number.isFinite(n) ? String(n) : '')
 
-/**
- * Número decimal con punto (ej. "2.5"), con un máximo de decimales. Si se escribe coma
- * se toma como punto decimal (en estos campos no se escriben separadores de miles).
- * Guarda el texto mientras se escribe para no perder el punto final.
- */
 export function DecimalInput({
   label,
   value,
@@ -29,7 +23,6 @@ export function DecimalInput({
 }: DecimalInputProps) {
   const [text, setText] = useState(toText(value))
 
-  // Sincroniza si el valor cambia desde fuera
   useEffect(() => {
     setText((current) => (Number(current) === value ? current : toText(value)))
   }, [value])
@@ -52,7 +45,6 @@ export function DecimalInput({
             .replace(/,/g, '.')
             .replace(/[^\d.]/g, '')
             .replace(/(\..*)\./, '$1')
-            // No permite escribir más decimales que maxDecimals
             .replace(new RegExp(`([.][0-9]{${maxDecimals}})[0-9]+`), '$1')
           setText(cleaned)
           const parsed = Number(cleaned)

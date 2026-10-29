@@ -9,15 +9,12 @@ export const axiosClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Adjunta el token a cada petición
 axiosClient.interceptors.request.use((config) => {
   const token = storageService.getToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// Las respuestas (también las de error) llegan con claves en MAYÚSCULAS_SNAKE: se pasan a camelCase.
-// Sesión expirada: limpia y regresa al login
 axiosClient.interceptors.response.use(
   (response) => {
     response.data = camelizeKeys(response.data)
@@ -33,13 +30,11 @@ axiosClient.interceptors.response.use(
   },
 )
 
-/** Extrae un mensaje legible de un error de la API */
 export function getApiErrorMessage(error: unknown, fallback = 'Ocurrió un error inesperado'): string {
   if (axios.isAxiosError<ApiError>(error)) {
     if (!error.response) return 'No se pudo conectar con el servidor'
     const data = error.response.data
     const message = data?.error ?? data?.message
-    // Los mensajes de Oracle separan líneas con \r: se normalizan a \n (la UI los muestra en líneas)
     return message ? message.replace(/\r\n?/g, '\n').trim() : fallback
   }
   if (error instanceof Error) return error.message

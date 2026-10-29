@@ -4,15 +4,12 @@ import type { UbicacionOpcion } from '@/interfaces/ubicacion.interface'
 import { nivelFiltro, PARTES_UBICACION } from '@/utils/ubicacion'
 import { useUbicaciones } from './useUbicaciones'
 
-/** Parte elegida del código; auto = se eligió sola por ser la única opción (regresar la salta) */
 interface Eleccion {
   codigo: string
   auto: boolean
-  /** Ubicación final multipallet */
   multiple?: boolean
 }
 
-/** Largo del código armado tras elegir `partes` partes */
 const largoHasta = (partes: number) => PARTES_UBICACION.slice(0, partes).reduce((sum, p) => sum + p.largo, 0)
 
 /**
@@ -28,17 +25,14 @@ export function useSelectorUbicacion(almacen: Warehouse | null, activo: boolean)
   const parte = PARTES_UBICACION[paso]
   const completo = paso === PARTES_UBICACION.length
 
-  // Paso 0 (código): se consultan todos los códigos del almacén juntos ("C1,P1") para ver su disponibilidad
   const filtro = activo && almacen && !completo ? (paso === 0 ? almacen.ubicaciones.join(',') : codigo) : ''
   const { opciones: todas, isLoading, error, reload } = useUbicaciones(filtro, nivelFiltro(paso))
-  // Descarta resultados de la consulta anterior mientras llega la nueva
   const opciones = todas.filter(
     (o) =>
       o.codigo.length === largoHasta(paso + 1) &&
       (paso === 0 ? almacen?.ubicaciones.includes(o.codigo) : o.codigo.startsWith(codigo)),
   )
 
-  // Una sola opción con espacio: se elige sola
   useEffect(() => {
     if (!activo || completo || isLoading || error || opciones.length !== 1 || opciones[0].disponibles === 0) return
     const unica = opciones[0]
@@ -52,7 +46,6 @@ export function useSelectorUbicacion(almacen: Warehouse | null, activo: boolean)
   const elegir = (opcion: UbicacionOpcion) =>
     setElecciones((current) => [...current, { codigo: opcion.codigo, auto: false, multiple: opcion.multiple }])
 
-  /** Vuelve a la parte indicada (descarta esa parte y las siguientes) */
   const irAParte = (indice: number) => setElecciones((current) => current.slice(0, indice))
 
   /**
@@ -80,7 +73,6 @@ export function useSelectorUbicacion(almacen: Warehouse | null, activo: boolean)
     irAParte,
     retroceder,
     reiniciar,
-    /** La ubicación final elegida admite varios pallets */
     multiple: !!elecciones.at(-1)?.multiple,
     automaticas: elecciones.map((e) => e.auto),
     hayEditables: elecciones.some((e) => !e.auto),

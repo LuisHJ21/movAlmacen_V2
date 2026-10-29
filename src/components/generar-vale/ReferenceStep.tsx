@@ -11,7 +11,6 @@ import { MovementChip } from './MovementChip'
 import { PalletChip } from './PalletChip'
 import { ReferenceCard } from './ReferenceCard'
 
-/** Una orden puede venir repetida con distinto NRO_MOV */
 export const referenceKey = (r: ReferenceDocument) => `${r.nroOrden}-${r.nroMov}`
 
 interface ReferenceStepProps {
@@ -22,11 +21,6 @@ interface ReferenceStepProps {
   onConfirm: (reference: ReferenceDocument) => void
 }
 
-/**
- * Destino cuando el movimiento requiere documento de referencia (F_REF = 1)
- * y el pallet no trae uno (salidas, o ingresos sin referencia en sus datos).
- * Se consulta con nroDoc vacío para listar los disponibles. Tocar una referencia avanza.
- */
 export function ReferenceStep({ pallet, movement, articleCode, initialReference = null, onConfirm }: ReferenceStepProps) {
   const { references, isLoading, error, reload } = useReferences({
     articleCode,
@@ -34,12 +28,10 @@ export function ReferenceStep({ pallet, movement, articleCode, initialReference 
     docNumber: '',
   })
 
-  // Salida: el pallet debe estar en el almacén donde está proyectada la referencia
   const esSalida = movement.tipo === 'SAL'
   const fueraDeAlmacen = (r: ReferenceDocument) => esSalida && !referenceMatchesPallet(r, pallet)
   const bloqueadas = references.filter(fueraDeAlmacen).length
 
-  // Búsqueda por orden, movimiento, descripción o almacén; las que se pueden elegir van primero
   const [query, setQuery] = useState('')
   const visibles = useMemo(() => {
     const q = query.trim().toLowerCase()

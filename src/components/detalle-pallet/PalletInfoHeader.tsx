@@ -25,11 +25,9 @@ function Meta({ icon: Icon, label, children }: { icon: LucideIcon; label: string
   )
 }
 
-/** Cabecera del pallet: franja con código y estado, métricas y datos de registro */
 export function PalletInfoHeader({ info }: { info: PalletInfo }) {
   return (
     <section aria-label="Datos del pallet" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      {/* Código y estado */}
       <div className="bg-primary px-4 pt-3 pb-3.5 text-on-primary">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold tracking-[0.18em] text-white/80 uppercase">Pallet</p>
@@ -45,7 +43,6 @@ export function PalletInfoHeader({ info }: { info: PalletInfo }) {
         <p className="mt-0.5 font-mono text-[1.75rem] leading-tight font-bold tracking-wider select-all">{info.codigo}</p>
       </div>
 
-      {/* Métricas */}
       <dl className="grid grid-cols-3 divide-x divide-border border-b border-border">
         <Metric icon={Scale} label="Peso">
           {formatWeight(info.peso)}
@@ -58,7 +55,6 @@ export function PalletInfoHeader({ info }: { info: PalletInfo }) {
         </Metric>
       </dl>
 
-      {/* Registro y observación */}
       {(info.fechaRegistro || info.usuarioRegistro || info.observacion) && (
         <dl className="space-y-1.5 px-4 py-2.5">
           {(info.fechaRegistro || info.usuarioRegistro) && (

@@ -12,10 +12,6 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import type { PalletInfo } from '@/interfaces/pallet.interface'
 import { palletService } from '@/services/pallet.service'
 
-/**
- * Consulta de pallet: escanear → información e ítems.
- * El código vive en la URL (?pallet=): al volver de un vale abierto desde aquí se recarga el mismo pallet.
- */
 export default function DetallePalletPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const palletCode = searchParams.get('pallet') ?? ''
@@ -23,7 +19,6 @@ export default function DetallePalletPage() {
   const [info, setInfo] = useState<PalletInfo>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>()
-  // Error al escanear (pallet inexistente): se muestra en el campo y se vuelve a la pantalla de escaneo
   const [scanError, setScanError] = useState<string>()
   const [attempt, setAttempt] = useState(0)
 
@@ -44,7 +39,6 @@ export default function DetallePalletPage() {
       .catch((err: unknown) => {
         if (ignore) return
         const message = getApiErrorMessage(err, 'No fue posible consultar el pallet')
-        // Falla del servidor o de conexión: se ofrece reintentar. Pallet inexistente: se vuelve a escanear.
         if (isAxiosError(err) && (!err.response || err.response.status >= 500)) {
           setInfo(undefined)
           setError(message)

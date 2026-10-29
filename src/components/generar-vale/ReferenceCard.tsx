@@ -5,12 +5,10 @@ import { formatQuantity, toSentenceCase } from '@/utils/format'
 interface ReferenceCardProps {
   reference: ReferenceDocument
   selected: boolean
-  /** Motivo por el que no se puede elegir (ej. proyectada en otro almacén) */
   bloqueo?: string
   onSelect: () => void
 }
 
-/** Documento de referencia: tipo y número de orden, descripción, saldo restante destacado, almacén y movimiento */
 export function ReferenceCard({ reference: r, selected, bloqueo, onSelect }: ReferenceCardProps) {
   return (
     <button
@@ -26,7 +24,6 @@ export function ReferenceCard({ reference: r, selected, bloqueo, onSelect }: Ref
             : 'border-border bg-card hover:border-primary-border active:border-primary'
       }`}
     >
-      {/* Cabecera: tipo de documento y número de orden */}
       <div className="flex items-center gap-2.5 px-3 pt-3">
         <span
           className={`grid size-10 shrink-0 place-items-center rounded-lg ${
@@ -59,7 +56,6 @@ export function ReferenceCard({ reference: r, selected, bloqueo, onSelect }: Ref
         <p className="line-clamp-2 px-3 pt-1.5 text-sm leading-snug text-foreground">{toSentenceCase(r.descripcion)}</p>
       )}
 
-      {/* Pie: saldo restante y almacén */}
       <div className="mt-2.5 flex items-stretch border-t border-border">
         <div className="min-w-0 flex-1 px-3 py-2">
           <p className="text-xs text-muted-foreground">Restante</p>

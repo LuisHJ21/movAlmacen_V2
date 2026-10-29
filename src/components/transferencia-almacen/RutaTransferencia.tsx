@@ -23,7 +23,6 @@ function Extremo({ titulo, almacen }: { titulo: string; almacen: Warehouse | nul
   )
 }
 
-/** Origen → destino de la transferencia; el extremo sin elegir aparece vacío */
 export function RutaTransferencia({ origen, destino }: RutaTransferenciaProps) {
   return (
     <div

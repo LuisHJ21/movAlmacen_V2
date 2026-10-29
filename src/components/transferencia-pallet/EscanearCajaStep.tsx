@@ -8,18 +8,11 @@ import { cajaService } from '@/services/caja.service'
 import type { TipoCajaEscaneo } from '@/utils/validarCaja'
 
 interface EscanearCajaStepProps {
-  /** Peso de una caja completa, ya formateado (para la ayuda de "caja de saldo") */
   pesoUnd: string
-  /** Cantidades de etiquetas que tienen las cajas reales de cada tipo (ver cantidadesDisponibles) */
   cantidades: Record<TipoCajaEscaneo, number[]>
-  /** Se llama con la etiqueta leída, el tipo de caja y cuántas etiquetas tiene la caja */
   onLeida: (tipo: TipoCajaEscaneo, etiquetas: number, etiqueta: EtiquetaCaja) => void
 }
 
-/**
- * Escanear una caja del pallet origen: el operador indica si es completa o de saldo y cuántas etiquetas
- * tiene (una caja mixta lleva una por cada ítem), y escanea el QR de una sola de ellas.
- */
 export function EscanearCajaStep({ pesoUnd, cantidades, onLeida }: EscanearCajaStepProps) {
   const [tipo, setTipo] = useState<TipoCajaEscaneo>(cantidades.completa.length > 0 ? 'completa' : 'saldo')
   const opciones = cantidades[tipo]
@@ -29,7 +22,6 @@ export function EscanearCajaStep({ pesoUnd, cantidades, onLeida }: EscanearCajaS
   const [error, setError] = useState<string>()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Tras un error, el código queda seleccionado para que la siguiente lectura lo reemplace
   useEffect(() => {
     if (error && !leyendo) {
       inputRef.current?.focus()
@@ -39,7 +31,6 @@ export function EscanearCajaStep({ pesoUnd, cantidades, onLeida }: EscanearCajaS
 
   const cambiarTipo = (nuevo: TipoCajaEscaneo) => {
     setTipo(nuevo)
-    // La cantidad elegida se mantiene si existe en el nuevo tipo
     if (!cantidades[nuevo].includes(cantidad)) setCantidad(cantidades[nuevo][0] ?? 1)
     inputRef.current?.focus()
   }
@@ -76,7 +67,6 @@ export function EscanearCajaStep({ pesoUnd, cantidades, onLeida }: EscanearCajaS
           hint={tipo === 'saldo' ? `No llega a ${pesoUnd}: es la caja con el sobrante.` : undefined}
         />
 
-        {/* Solo se ofrecen las cantidades de etiquetas que tienen las cajas reales del origen */}
         {opciones.length > 1 && (
           <fieldset className="space-y-1.5">
             <legend className="flex items-center gap-1.5 text-sm font-semibold">

@@ -32,10 +32,6 @@ const toneClasses: Record<MenuTone, { card: string; barra: string; icono: string
   },
 }
 
-/**
- * Tarjeta de opción en tono suave: barra de color a la izquierda, ícono sólido, título y descripción,
- * flecha en círculo claro y el ícono como ilustración tenue en la esquina.
- */
 export function MenuOptionButton({ label, description, path, Icon, tone }: MenuOptionButtonProps) {
   const t = toneClasses[tone]
 
@@ -45,7 +41,6 @@ export function MenuOptionButton({ label, description, path, Icon, tone }: MenuO
       className={`group relative isolate flex h-full min-h-24 items-center gap-2 overflow-hidden rounded-xl border py-3 pr-2 pl-3.5 shadow-sm transition-[border-color,transform] duration-150 active:scale-[0.98] ${t.card}`}
     >
       <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${t.barra}`} />
-      {/* Ilustración tenue en la esquina inferior derecha */}
       <Icon aria-hidden strokeWidth={1.5} className={`absolute -right-2 -bottom-3 -z-10 size-20 ${t.marca}`} />
 
       <span className={`grid size-11 shrink-0 place-items-center self-start rounded-xl text-white shadow-sm ${t.icono}`}>

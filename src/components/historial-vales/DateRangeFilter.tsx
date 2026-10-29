@@ -4,13 +4,10 @@ import { Input } from '@/components/ui/Input'
 import { parseIsoDate, toIsoDate } from '@/utils/format'
 
 export interface DateRange {
-  /** "YYYY-MM-DD" */
   from: string
-  /** "YYYY-MM-DD" */
   to: string
 }
 
-/** Rango de los últimos `days` días contando hoy (1 = solo hoy) */
 export function lastDaysRange(days: number, today = new Date()): DateRange {
   const from = new Date(today)
   from.setDate(today.getDate() - (days - 1))
@@ -36,12 +33,10 @@ interface DateRangeFilterProps {
   disabled?: boolean
 }
 
-/** Accesos rápidos + fechas Desde/Hasta. Los accesos consultan al tocarlos; las fechas, con el botón buscar. */
 export function DateRangeFilter({ value, onChange, disabled = false }: DateRangeFilterProps) {
   const [draft, setDraft] = useState(value)
   const [error, setError] = useState<string>()
 
-  // Si el rango cambia desde fuera (ej. acceso rápido), las fechas lo reflejan
   useEffect(() => setDraft(value), [value])
 
   const today = toIsoDate(new Date())

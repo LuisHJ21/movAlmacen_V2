@@ -5,10 +5,8 @@ import { segmentoNuevo, type ParteUbicacionInfo } from '@/utils/ubicacion'
 
 interface UbicacionGridProps {
   info: ParteUbicacionInfo
-  /** Código armado antes de este paso: cada opción muestra solo la parte que agrega */
   prefijo: string
   opciones: UbicacionOpcion[]
-  /** Opción elegida antes (se resalta al regresar a este paso) */
   seleccion?: string | null
   onSelect: (opcion: UbicacionOpcion) => void
   isLoading?: boolean
@@ -18,11 +16,6 @@ interface UbicacionGridProps {
 
 const columnas = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const
 
-/**
- * Opciones de un paso de la ubicación en grilla: la parte del código en grande y las
- * posiciones libres con una barra. Sin posiciones libres no se puede elegir. Tocar una avanza.
- * En la profundidad solo llegan ubicaciones disponibles; las multipallet se resaltan en índigo.
- */
 export function UbicacionGrid({ info, prefijo, opciones, seleccion, onSelect, isLoading, error, onRetry }: UbicacionGridProps) {
   if (isLoading) {
     return (

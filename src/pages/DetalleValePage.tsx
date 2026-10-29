@@ -19,10 +19,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/**
- * Detalle de un vale del historial. Los datos de cabecera llegan en el state desde la lista;
- * si el vale está anulado no se consulta la API. Abierto por URL directa (sin state) siempre consulta.
- */
 export default function DetalleValePage() {
   const { valeNumber = '' } = useParams()
   const location = useLocation()
@@ -32,7 +28,6 @@ export default function DetalleValePage() {
 
   const { lines, isLoading, error, reload } = useValeDetail(valeNumber, !annulled)
 
-  // Si se llegó desde la lista se vuelve a ella (conserva el rango); si no, a la lista por defecto
   const goBack = location.key !== 'default' ? () => navigate(-1) : undefined
   const units = [...new Set(lines.map((l) => l.unidad))]
   const total = lines.reduce((sum, l) => sum + l.cantidad, 0)
@@ -50,7 +45,6 @@ export default function DetalleValePage() {
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-6">
-        {/* Cabecera */}
         <section
           aria-label="Datos del vale"
           className={`rounded-xl border bg-card px-4 py-3 ${annulled ? 'border-destructive/40' : 'border-border'}`}
@@ -92,7 +86,6 @@ export default function DetalleValePage() {
           )}
         </section>
 
-        {/* Detalle */}
         {annulled ? (
           <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive-soft px-4 py-3 text-sm">
             <Ban aria-hidden className="mt-0.5 size-5 shrink-0 text-destructive" />
@@ -138,7 +131,6 @@ export default function DetalleValePage() {
                 </li>
               ))}
             </ul>
-            {/* El total solo tiene sentido si todas las líneas usan la misma unidad */}
             {lines.length > 1 && units.length === 1 && (
               <div className="flex items-baseline justify-between rounded-lg bg-muted px-3 py-2.5">
                 <span className="text-sm font-semibold text-muted-foreground">Total</span>

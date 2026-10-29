@@ -13,7 +13,6 @@ export function detalleTraslado(cajas: CajaEscaneada[], articulo: string): Trans
     actual.peso += p.peso
     porClave.set(clave, actual)
   }
-  // Redondeo a 4 decimales para no enviar errores de punto flotante (0.1 + 0.2)
   return [...porClave.values()].map((d) => ({ ...d, peso: Math.round(d.peso * 10_000) / 10_000 }))
 }
 

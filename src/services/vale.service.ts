@@ -12,14 +12,12 @@ import type {
 import { cleanText, parseApiDateTime, toNumber } from '@/utils/format'
 
 export const valeService = {
-  /** Registra el vale. Lanza error si la API responde con error o success = false. */
   async create(payload: ValeRequest): Promise<ApiValeResponse> {
     const { data } = await axiosClient.post<ApiValeResponse>('/vale', payload)
     if (data && data.success === false) throw new Error(data.message ?? 'No fue posible guardar el vale')
     return data
   },
 
-  /** Vales del usuario en el rango de fechas (más recientes primero); [] si la API responde 404 */
   async getHistory({ usuario: username, desde: from, hasta: to }: ValeHistoryQuery): Promise<ValeHistoryItem[]> {
     try {
       const { data } = await axiosClient.get<ApiValeHistoryResponse>('/vale', {
@@ -48,7 +46,6 @@ export const valeService = {
     }
   },
 
-  /** Líneas del vale; [] si la API responde 404 (vale_detail_not_found) */
   async getDetail(valeNumber: string): Promise<ValeDetailLine[]> {
     try {
       const { data } = await axiosClient.get<ApiValeDetailResponse>('/vale/detalle', { params: { vale: valeNumber } })

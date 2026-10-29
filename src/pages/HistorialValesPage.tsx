@@ -11,7 +11,6 @@ import { useValeHistory } from '@/hooks/useValeHistory'
 import type { ValeHistoryItem } from '@/interfaces/vale.interface'
 import { formatDate, formatDayLabel, parseIsoDate, toIsoDate } from '@/utils/format'
 
-/** Agrupa por día de registro conservando el orden (más recientes primero) */
 function groupByDay(vales: ValeHistoryItem[]) {
   const groups = new Map<string, { date: Date | null; vales: ValeHistoryItem[] }>()
   for (const vale of vales) {
@@ -32,7 +31,6 @@ function rangeLabel({ from, to }: DateRange): string {
 
 export default function HistorialValesPage() {
   const { usuario: user } = useAuth()
-  // El rango vive en la URL (?desde=&hasta=): al volver del detalle se conserva la consulta
   const [searchParams, setSearchParams] = useSearchParams()
   const range = useMemo<DateRange>(() => {
     const from = searchParams.get('desde') ?? ''

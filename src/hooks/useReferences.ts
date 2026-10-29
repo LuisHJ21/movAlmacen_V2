@@ -2,10 +2,6 @@ import { isAxiosError } from 'axios'
 import { almacenService, type ReferenceQuery } from '@/services/almacen.service'
 import { useAsync } from './useAsync'
 
-/**
- * Documentos de referencia disponibles: solo los que tienen restante > 0.
- * Un 404 de la API se trata como lista vacía.
- */
 export function useReferences({ articleCode, movementCode, docNumber = '' }: ReferenceQuery) {
   const { data, ...rest } = useAsync(
     async () => {

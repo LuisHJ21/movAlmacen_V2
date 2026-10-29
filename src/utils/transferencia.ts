@@ -14,23 +14,18 @@ export function tipoTransferencia(origen: Warehouse, destino: Warehouse, pallet:
 }
 
 interface BuildTransferenciaRequestParams {
-  /** Fecha y hora en que se cargó la transferencia */
   date: Date
-  /** Generados una vez por transferencia (ver generateFormId): un reintento envía los mismos */
   formIdSalida: string
   formIdIngreso: string
   usuario: string
   pallet: Pallet
   origen: Warehouse
   destino: Warehouse
-  /** Todos los ítems del pallet (en la transferencia no se quita ninguno) */
   items: PalletItem[]
-  /** Ubicación en el destino: la elegida, o la actual si se mantiene; '' si no aplica */
   ubicacion: string
   observaciones?: string
 }
 
-/** Arma el cuerpo de POST /transferencia: un detalle por cada ítem del pallet */
 export function buildTransferenciaRequest({
   date,
   formIdSalida,

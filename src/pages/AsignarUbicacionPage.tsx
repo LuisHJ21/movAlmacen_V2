@@ -23,11 +23,6 @@ import { formatQuantity, toSentenceCase } from '@/utils/format'
 
 type Step = 'scan' | 'almacen' | 'ubicacion' | 'resumen' | 'guardado'
 
-/**
- * Asignar ubicación: escanear pallet → almacén → código de ubicación → lado → columna → nivel →
- * profundidad → resumen. Si el pallet ya tiene ubicación se confirma la reasignación, que siempre
- * es dentro del mismo almacén: se omite el paso de almacén. Se guarda con POST /ubicacion.
- */
 export default function AsignarUbicacionPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('scan')
@@ -45,11 +40,9 @@ export default function AsignarUbicacionPage() {
 
   const { warehouses, isLoading: loadingWarehouses, error: warehousesError, reload: reloadWarehouses } = useWarehouses()
 
-  // Reasignación: el pallet ya tiene ubicación y se queda en su almacén
   const reasignacion = !!pallet?.ubicacion
   const almacenActual = warehouses.find((w) => w.codigo === pallet?.almacen) ?? null
 
-  // Al reasignar, el almacén es el del pallet (se fija en cuanto cargan los almacenes)
   useEffect(() => {
     if (step === 'ubicacion' && reasignacion && !almacen && almacenActual) setAlmacen(almacenActual)
   }, [step, reasignacion, almacen, almacenActual])
@@ -93,7 +86,6 @@ export default function AsignarUbicacionPage() {
     setStep('ubicacion')
   }
 
-  // Tocar una parte ya elegida del código (también desde el resumen) vuelve a ese paso
   const irAParte = (indice: number) => {
     selector.irAParte(indice)
     setStep('ubicacion')
@@ -122,12 +114,10 @@ export default function AsignarUbicacionPage() {
     }
   }
 
-  // Regresar quita la última parte elegida a mano junto con las que se eligieron solas después
   const goBack = () => {
     setSaveError(undefined)
     if (step === 'almacen') return reiniciar()
     if (selector.retroceder()) return setStep('ubicacion')
-    // Sin partes elegidas a mano: al reasignar no hay paso de almacén, se vuelve al escaneo
     if (reasignacion) return reiniciar()
     setStep('almacen')
   }
@@ -146,7 +136,6 @@ export default function AsignarUbicacionPage() {
     disabled: w.ubicaciones.length === 0,
   }))
 
-  // Al reasignar no hay paso de almacén: la numeración se corre uno
   const offset = reasignacion ? 2 : 3
   const stepNumber = step === 'scan' ? 1 : step === 'almacen' ? 2 : step === 'resumen' ? offset + 5 : paso + offset
   const stepTitle =

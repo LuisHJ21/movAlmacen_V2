@@ -2,7 +2,6 @@ import { Sigma } from 'lucide-react'
 import type { PalletData } from '@/interfaces/pallet.interface'
 import { formatCount, formatDate, formatWeight, parseIsoDate, toSentenceCase } from '@/utils/format'
 
-/** Ítems del pallet que se transfieren (todos, sin poder quitar ninguno), con totales */
 export function TransferItemList({ datos }: { datos: PalletData }) {
   const bultos = datos.items.reduce((sum, i) => sum + i.bultos, 0)
   const peso = datos.items.reduce((sum, i) => sum + i.peso, 0)
@@ -19,7 +18,6 @@ export function TransferItemList({ datos }: { datos: PalletData }) {
       </h2>
       <ul className="space-y-2">
         {datos.items.map((item) => {
-          // La API envía la fecha como "2025-09-06"
           const produccion = parseIsoDate(item.fecha)
           const trazabilidad: Array<[string, string]> = [
             ['Lote', item.lote],
