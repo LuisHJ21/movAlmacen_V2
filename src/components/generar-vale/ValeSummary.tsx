@@ -20,9 +20,8 @@ interface ValeSummaryProps {
   groups: ValePalletGroup[]
   onLineChange: (palletCode: string, index: number, changes: Partial<Pick<ValeLine, 'bultos' | 'kgAdicional'>>) => void
   onRemovePallet?: (palletCode: string) => void
-  /** Salidas: quitar un ítem / volver a agregar ítems excluidos de un pallet */
+  /** Salidas: quitar un ítem (vuelve a quedar disponible en "Añadir ítem") */
   onRemoveLine?: (palletCode: string, item: string) => void
-  onAddItems?: (palletCode: string) => void
   /** Plan diario del vale (uno por operación); solo si el movimiento lo solicita */
   plan?: { valor: PlanDiario | null; pendiente: boolean; onPick: () => void }
 }
@@ -39,7 +38,6 @@ export function ValeSummary({
   onLineChange,
   onRemovePallet,
   onRemoveLine,
-  onAddItems,
   plan,
 }: ValeSummaryProps) {
   // Solo las salidas permiten ajustar bultos y kg adicionales
@@ -61,7 +59,7 @@ export function ValeSummary({
           isInitial={index === 0}
           onLineChange={(lineIndex, changes) => onLineChange(group.pallet.codigo, lineIndex, changes)}
           onRemoveLine={onRemoveLine ? (item) => onRemoveLine(group.pallet.codigo, item) : undefined}
-          onAddItems={onAddItems ? () => onAddItems(group.pallet.codigo) : undefined}          // El pallet inicial define artículo y movimiento: no se quita
+          // El pallet inicial define artículo y movimiento: no se quita
           onRemove={index > 0 && onRemovePallet ? () => onRemovePallet(group.pallet.codigo) : undefined}
         />
       ))}

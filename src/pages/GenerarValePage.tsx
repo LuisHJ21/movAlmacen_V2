@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react'
+import { ListPlus, Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react'
 import { ValeSaved } from '@/components/generar-vale/ValeSaved'
 import { useAuth } from '@/hooks/useAuth'
 import { isAxiosError } from 'axios'
@@ -16,6 +16,7 @@ import { ValeSummary } from '@/components/generar-vale/ValeSummary'
 import { WarehouseStep } from '@/components/generar-vale/WarehouseStep'
 import { Alert } from '@/components/ui/Alert'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { OptionList } from '@/components/ui/OptionList'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Matrix, ReferenceDocument, Warehouse } from '@/interfaces/almacen.interface'
@@ -26,7 +27,7 @@ import { almacenService } from '@/services/almacen.service'
 import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
 import { palletService } from '@/services/pallet.service'
 import { valeService } from '@/services/vale.service'
-import { formatWeight, toSentenceCase } from '@/utils/format'
+import { formatCount, formatWeight, toSentenceCase } from '@/utils/format'
 import {
   generateFormId,
   buildValeLines,
@@ -51,6 +52,7 @@ type Step =
   | 'summary'
   | 'addPallet'
   | 'selectItems'
+  | 'selectPalletItems'
   | 'plan'
   | 'done'
 
@@ -64,6 +66,7 @@ const stepTitles: Record<Step, string> = {
   summary: 'Resumen',
   addPallet: 'Agregar pallet',
   selectItems: 'Elegir ítems',
+  selectPalletItems: 'Añadir ítem',
   plan: 'Plan diario',
   done: 'Vale guardado',
 }
@@ -315,6 +318,15 @@ export default function GenerarValePage() {
     goTo('selectItems')
   }
 
+  // Pallets del vale con ítems que se pueden volver a añadir
+  const palletsConItems = groups.filter((g) => excludedLines(g).length > 0)
+
+  // "Añadir ítem": si solo un pallet tiene ítems por añadir se va directo a elegirlos; si no, primero el pallet
+  const openAddItem = () => {
+    if (palletsConItems.length === 1) return openAddItems(palletsConItems[0].pallet.codigo)
+    goTo('selectPalletItems')
+  }
+
   const handleItemsSelected = (selected: ValeLine[]) => {
     if (!itemPicker) return
     const { mode, palletCode, pending } = itemPicker
@@ -330,7 +342,8 @@ export default function GenerarValePage() {
         }),
       )
       if (mode === 'initial') goTo('summary')
-      else goBack()
+      // Regresa al resumen (saca "Elegir ítems" y, si se pasó por ahí, "Añadir ítem")
+      else setHistory((h) => h.slice(0, h.lastIndexOf('summary') + 1))
     }
     setItemPicker(null)
   }
@@ -590,7 +603,6 @@ export default function GenerarValePage() {
               onLineChange={updateLine}
               onRemovePallet={removePallet}
               onRemoveLine={movement.tipo === 'SAL' ? removeLine : undefined}
-              onAddItems={movement.tipo === 'SAL' ? openAddItems : undefined}
               plan={
                 movement.solicitaPlan
                   ? { valor: planDiario, pendiente: faltaPlan && linesValid, onPick: () => goTo('plan') }
@@ -614,9 +626,31 @@ export default function GenerarValePage() {
                 </p>
               )
             )}
-            {/* Salidas: "Agregar pallet" siempre visible, fijo en el pie junto a Guardar */}
-            <div className={movement.tipo === 'SAL' ? 'grid grid-cols-2 gap-2' : ''}>
-              {movement.tipo === 'SAL' && (
+            {/* Salidas: "Añadir ítem" (si hay ítems quitados) y "Agregar pallet" fijos en el pie junto a Guardar */}
+            {movement.tipo === 'SAL' && palletsConItems.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={openAddItem}
+                  disabled={isSaving}
+                  icon={<ListPlus aria-hidden className="size-5" />}
+                  className="px-3"
+                >
+                  Añadir ítem
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={openAddPallet}
+                  disabled={isSaving}
+                  icon={<Plus aria-hidden className="size-5" />}
+                  className="px-3"
+                >
+                  Agregar pallet
+                </Button>
+              </div>
+            )}
+            <div className={movement.tipo === 'SAL' && palletsConItems.length === 0 ? 'grid grid-cols-2 gap-2' : ''}>
+              {movement.tipo === 'SAL' && palletsConItems.length === 0 && (
                 <Button
                   variant="secondary"
                   onClick={openAddPallet}
@@ -772,6 +806,32 @@ export default function GenerarValePage() {
           serverError={addError}
           onCodeChange={() => setAddError(undefined)}
         />
+      )}
+
+      {step === 'selectPalletItems' && (
+        <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4">
+          <p className="mb-3 text-sm text-muted-foreground">
+            Elige el pallet del que quieres añadir ítems. Luego marcas cuáles entran al vale.
+          </p>
+          <OptionList
+            legend="Pallet"
+            name="pallet-items"
+            items={palletsConItems.map((g) => {
+              const disponibles = excludedLines(g)
+              const total = valeTotals(disponibles)
+              return {
+                key: g.pallet.codigo,
+                badge: g.pallet.codigo,
+                title: `${disponibles.length} ${disponibles.length === 1 ? 'ítem para añadir' : 'ítems para añadir'}`,
+                meta: `${formatCount(total.packages)} bultos · ${formatWeight(total.weight)} · ${g.lineas.length} en el vale`,
+              }
+            })}
+            selectedKey={null}
+            onSelect={openAddItems}
+            emptyMessage="No hay ítems para añadir."
+            badgePlacement="top"
+          />
+        </div>
       )}
 
       {step === 'selectItems' && itemPicker && (
