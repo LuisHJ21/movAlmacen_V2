@@ -1,6 +1,6 @@
 import {
   ArrowRightLeft,
-  Ban,
+  // Ban,
   ClipboardList,
   FilePlus2,
   Layers,
