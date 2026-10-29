@@ -96,7 +96,7 @@ export function PalletTransferCard({ pallet, nuevaUbicacion }: PalletTransferCar
                 type="button"
                 onClick={nuevaUbicacion.onCambiar}
                 aria-label="Cambiar la nueva ubicación"
-                className="-my-2 -mr-2 grid h-touch w-[44px] shrink-0 place-items-center self-center rounded-lg text-primary transition-colors duration-150 hover:bg-primary/10 active:bg-primary/10"
+                className="-my-2 -mr-2 grid h-touch w-11 shrink-0 place-items-center self-center rounded-lg text-primary transition-colors duration-150 hover:bg-primary/10 active:bg-primary/10"
               >
                 <Pencil aria-hidden className="size-4" />
               </button>

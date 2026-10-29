@@ -48,7 +48,7 @@ export function ValeHeader({ date, movement, articleCode, article, warehouse }: 
             <Package aria-hidden className="size-4 text-primary" />
             <span className="sr-only">Artículo</span>
           </dt>
-          <dd className="min-w-0 truncate" title={articleName ? `${articleCode} · ${articleName}` : articleCode}>
+          <dd className="min-w-0 " title={articleName ? `${articleCode} · ${articleName}` : articleCode}>
             <span className="font-mono font-semibold">{articleCode}</span>
             {articleName && <span className="text-muted-foreground"> · {articleName}</span>}
           </dd>

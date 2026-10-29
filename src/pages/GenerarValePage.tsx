@@ -754,7 +754,7 @@ export default function GenerarValePage() {
             </div>
           </dl>
         )}
-        <p className="mt-2 text-sm text-muted-foreground">Una vez guardado, el vale no se podrá editar desde aquí.</p>
+       
       </ConfirmDialog>
 
       {step === 'done' && movement && articleCode && (
