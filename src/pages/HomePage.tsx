@@ -3,7 +3,7 @@ import { menuSections } from '@/components/home/menuOptions'
 
 const sectionTitleClass = 'mb-2 px-1 font-sans text-xs font-semibold tracking-[0.15em] uppercase text-muted-foreground'
 
-/** Inicio: opciones en tarjetas de tono suave, en 2 columnas; la que queda sola en su fila ocupa el ancho */
+
 export default function HomePage() {
   return (
     <div className="flex-1 bg-card">

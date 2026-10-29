@@ -43,13 +43,13 @@ export const menuSections: MenuSection[] = [
       { label: 'Detalle de pallet', description: 'Escanea y consulta un pallet', path: '/detalle-pallet', Icon: Search },
     ],
   },
-  {
-    title: 'Anulaciones',
-    tone: 'anulacion',
-    options: [
-      { label: 'Anular transferencia', description: 'Revierte una transferencia', path: '/anular-transferencia', Icon: Ban },
-    ],
-  },
+  // {
+  //   title: 'Anulaciones',
+  //   tone: 'anulacion',
+  //   options: [
+  //     { label: 'Anular transferencia', description: 'Revierte una transferencia', path: '/anular-transferencia', Icon: Ban },
+  //   ],
+  // },
 ]
 
 export const menuOptions: MenuOption[] = menuSections.flatMap((section) => section.options)
