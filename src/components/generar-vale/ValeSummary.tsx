@@ -2,9 +2,11 @@ import { Sigma } from 'lucide-react'
 import type { Matrix, Warehouse } from '@/interfaces/almacen.interface'
 import type { Movement } from '@/interfaces/movimiento.interface'
 import type { Article } from '@/interfaces/pallet.interface'
+import type { PlanDiario } from '@/interfaces/planDiario.interface'
 import type { ValeLine, ValePalletGroup } from '@/interfaces/vale.interface'
 import { formatCount, formatWeight } from '@/utils/format'
 import { valeTotals } from '@/utils/vale'
+import { PlanDiarioField } from './PlanDiarioField'
 import { ValeHeader } from './ValeHeader'
 import { ValePalletSection } from './ValePalletSection'
 
@@ -21,8 +23,8 @@ interface ValeSummaryProps {
   /** Salidas: quitar un ítem / volver a agregar ítems excluidos de un pallet */
   onRemoveLine?: (palletCode: string, item: string) => void
   onAddItems?: (palletCode: string) => void
-  /** Solo si el movimiento solicita plan diario */
-  onPickPlan?: (palletCode: string, item: string) => void
+  /** Plan diario del vale (uno por operación); solo si el movimiento lo solicita */
+  plan?: { valor: PlanDiario | null; pendiente: boolean; onPick: () => void }
 }
 
 /** Resumen del vale: cabecera general + detalle por cada pallet */
@@ -38,7 +40,7 @@ export function ValeSummary({
   onRemovePallet,
   onRemoveLine,
   onAddItems,
-  onPickPlan,
+  plan,
 }: ValeSummaryProps) {
   // Solo las salidas permiten ajustar bultos y kg adicionales
   const editable = movement.tipo === 'SAL'
@@ -47,6 +49,8 @@ export function ValeSummary({
   return (
     <div className="space-y-4">
       <ValeHeader date={date} movement={movement} articleCode={articleCode} article={article} warehouse={warehouse} />
+
+      {plan && <PlanDiarioField plan={plan.valor} pendiente={plan.pendiente} onPick={plan.onPick} />}
 
       {groups.map((group, index) => (
         <ValePalletSection
@@ -57,9 +61,7 @@ export function ValeSummary({
           isInitial={index === 0}
           onLineChange={(lineIndex, changes) => onLineChange(group.pallet.codigo, lineIndex, changes)}
           onRemoveLine={onRemoveLine ? (item) => onRemoveLine(group.pallet.codigo, item) : undefined}
-          onAddItems={onAddItems ? () => onAddItems(group.pallet.codigo) : undefined}
-          onPickPlan={onPickPlan ? (item) => onPickPlan(group.pallet.codigo, item) : undefined}
-          // El pallet inicial define artículo y movimiento: no se quita
+          onAddItems={onAddItems ? () => onAddItems(group.pallet.codigo) : undefined}          // El pallet inicial define artículo y movimiento: no se quita
           onRemove={index > 0 && onRemovePallet ? () => onRemovePallet(group.pallet.codigo) : undefined}
         />
       ))}

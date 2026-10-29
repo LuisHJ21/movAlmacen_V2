@@ -1,13 +1,11 @@
 import { useId, type ReactNode } from 'react'
 import {
   AlertCircle,
-  CalendarDays,
-  ChevronRight,
   FileText,
   Layers,
   Lock,
   Package,
-  Pencil,
+  PackageCheck,
   ScanBarcode,
   Trash2,
   Weight,
@@ -16,7 +14,7 @@ import {
 import { DecimalInput } from '@/components/ui/DecimalInput'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import type { ValeLine, ValeLineErrors } from '@/interfaces/vale.interface'
-import { formatQuantity, formatWeight } from '@/utils/format'
+import { formatCount, formatQuantity, formatWeight } from '@/utils/format'
 import { lineWeight } from '@/utils/vale'
 
 interface ValeItemCardProps {
@@ -30,8 +28,6 @@ interface ValeItemCardProps {
   onRemove?: () => void
   /** Motivo por el que no se puede quitar (ej. último ítem del pallet inicial) */
   removeDisabledReason?: string
-  /** El movimiento solicita plan diario: se muestra el campo y al tocarlo se elige */
-  onPickPlan?: () => void
 }
 
 type Tone = 'primary' | 'success'
@@ -80,14 +76,13 @@ export function ValeItemCard({
   onChange,
   onRemove,
   removeDisabledReason,
-  onPickPlan,
 }: ValeItemCardProps) {
   const id = useId()
   const weight = lineWeight(line)
-  // El plan pendiente se marca en su propio campo; el pie queda para los errores de cantidades
   const errorText = errors.bultos ?? errors.kgAdicional ?? errors.peso
-  const hasError = !!errorText || !!errors.planDiario
-  const plan = line.planDiario
+  const hasError = !!errorText
+  // Porcentaje del disponible que sale (para la barra)
+  const disponibleUsado = line.pesoDisponible > 0 ? Math.min(100, (weight / line.pesoDisponible) * 100) : 0
 
   return (
     <article
@@ -138,58 +133,37 @@ export function ValeItemCard({
           {line.traza || '—'}
         </Field>
 
-        {onPickPlan && (
+        {editable && (
+          // Salida: lo que el pallet tiene disponible para este ítem y cuánto de eso sale
           <div className="py-2.5">
-            <button
-              type="button"
-              onClick={onPickPlan}
-              aria-label={plan ? `Plan diario del ítem ${line.item}: ${plan.codigo}. Cambiar` : `Elegir plan diario del ítem ${line.item}`}
-              className={`flex min-h-touch w-full items-center gap-2.5 rounded-lg border-2 px-2.5 py-2 text-left transition-colors duration-150 ${
-                plan
-                  ? 'border-border bg-card hover:bg-muted active:border-primary active:bg-primary-soft'
-                  : errors.planDiario
-                    ? 'border-dashed border-destructive bg-destructive-soft hover:bg-destructive-soft/70'
-                    : 'border-dashed border-primary/60 bg-primary-soft hover:bg-primary/10'
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`grid size-10 shrink-0 place-items-center rounded-lg ${
-                  plan ? 'bg-primary-soft text-primary' : errors.planDiario ? 'bg-white text-destructive' : 'bg-white text-primary'
-                }`}
+            <div className="rounded-lg bg-muted px-3 py-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <PackageCheck aria-hidden className="size-4 text-success" />
+                  Disponible para salida
+                </span>
+                <span className="font-mono text-sm font-bold whitespace-nowrap">
+                  {formatCount(line.bultosDisponibles)} bultos · {formatWeight(line.pesoDisponible)}
+                </span>
+              </div>
+              <div
+                role="meter"
+                aria-label={`Sale ${formatWeight(weight)} de ${formatWeight(line.pesoDisponible)} disponibles`}
+                aria-valuemin={0}
+                aria-valuemax={line.pesoDisponible}
+                aria-valuenow={Math.min(weight, line.pesoDisponible)}
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border"
               >
-                <CalendarDays className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xs text-muted-foreground">Plan diario</span>
-                {plan ? (
-                  <>
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate font-mono text-base font-semibold">{plan.codigo}</span>
-                      {plan.especie && (
-                        <span className="shrink-0 rounded bg-muted px-1.5 font-mono text-xs font-bold text-muted-foreground">
-                          {plan.especie}
-                        </span>
-                      )}
-                    </span>
-                    {plan.descripcion && (
-                      <span className="block truncate text-sm text-muted-foreground">{plan.descripcion}</span>
-                    )}
-                  </>
-                ) : (
-                  <span
-                    className={`block font-heading text-base font-semibold ${errors.planDiario ? 'text-destructive' : 'text-primary-hover'}`}
-                  >
-                    Elegir plan diario
-                  </span>
-                )}
-              </span>
-              {plan ? (
-                <Pencil aria-hidden className="size-5 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronRight aria-hidden className={`size-5 shrink-0 ${errors.planDiario ? 'text-destructive' : 'text-primary'}`} />
-              )}
-            </button>
+                <div
+                  className={`h-full rounded-full transition-[width] duration-200 ${errors.peso ? 'bg-destructive' : 'bg-primary'}`}
+                  style={{ width: `${disponibleUsado}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sale {formatWeight(weight)}
+                {line.pesoDisponible > 0 && ` · quedan ${formatWeight(Math.max(0, line.pesoDisponible - weight))}`}
+              </p>
+            </div>
           </div>
         )}
 

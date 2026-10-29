@@ -45,22 +45,17 @@ export function buildValeLines(
     kgAdicional: calcExtraKg(i.peso, i.pesoUnidad),
     bultosDisponibles: i.bultos,
     pesoDisponible: i.peso,
-    planDiario: null,
   }))
 }
 
 interface ValeLineRules {
   /** Salidas: bultos y kg editables, con tope en lo disponible */
   editable: boolean
-  /** El movimiento solicita plan diario por ítem */
-  requierePlan: boolean
 }
 
-/** Errores de la línea: cantidades (solo salidas) y plan diario (si el movimiento lo solicita) */
-export function validateValeLine(line: ValeLine, { editable, requierePlan }: ValeLineRules): ValeLineErrors {
-  const errors = editable ? validateQuantities(line) : {}
-  if (requierePlan && !line.planDiario) errors.planDiario = 'Elige el plan diario'
-  return errors
+/** Errores de la línea: solo las salidas se editan, así que solo ahí se validan cantidades */
+export function validateValeLine(line: ValeLine, { editable }: ValeLineRules): ValeLineErrors {
+  return editable ? validateQuantities(line) : {}
 }
 
 /** Reglas de edición en salidas: no se puede sacar más de lo disponible */
@@ -139,6 +134,8 @@ interface BuildValeRequestParams {
   username: string
   groups: ValePalletGroup[]
   observations?: string
+  /** Plan diario elegido para el vale (uno por operación); se envía en cada ítem. null si no aplica */
+  planDiarioCode?: string | null
 }
 
 /** Arma el cuerpo de POST /vale: un detalle por cada ítem incluido en el vale */
@@ -153,6 +150,7 @@ export function buildValeRequest({
   username,
   groups,
   observations = '',
+  planDiarioCode = null,
 }: BuildValeRequestParams): ValeRequest {
   return {
     tMov: movement.codigo,
@@ -175,7 +173,7 @@ export function buildValeRequest({
         peso: String(lineWeight(line)),
         matriz: matrixCode ?? '',
         lote: line.lote,
-        planDiario: line.planDiario?.codigo ?? '',
+        planDiario: planDiarioCode ?? '',
         item:line.item,
         pallet:line.codPallet
       })),

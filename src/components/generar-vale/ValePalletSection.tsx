@@ -17,8 +17,6 @@ interface ValePalletSectionProps {
   onAddItems?: () => void
   /** Solo los pallets agregados se pueden quitar */
   onRemove?: () => void
-  /** El movimiento solicita plan diario: cada ítem muestra el campo para elegirlo */
-  onPickPlan?: (item: string) => void
 }
 
 /** Cabecera de detalle por pallet + sus ítems + total del pallet */
@@ -31,9 +29,8 @@ export function ValePalletSection({
   onRemoveLine,
   onAddItems,
   onRemove,
-  onPickPlan,
 }: ValePalletSectionProps) {
-  const rules = { editable, requierePlan: !!onPickPlan }
+  const rules = { editable }
   const { pallet, lineas: lines } = group
   const totals = valeTotals(lines)
   const headingId = `pallet-${pallet.codigo}`
@@ -78,9 +75,7 @@ export function ValePalletSection({
             matrixCode={matrix?.codigo ?? null}
             editable={editable}
             errors={validateValeLine(line, rules)}
-            onChange={(changes) => onLineChange(index, changes)}
-            onPickPlan={onPickPlan ? () => onPickPlan(line.item) : undefined}
-            onRemove={editable && onRemoveLine ? () => onRemoveLine(line.item) : undefined}
+            onChange={(changes) => onLineChange(index, changes)}            onRemove={editable && onRemoveLine ? () => onRemoveLine(line.item) : undefined}
             removeDisabledReason={lastOfInitial ? 'El pallet inicial debe tener al menos un ítem' : undefined}
           />
         ))

@@ -74,7 +74,8 @@ const stepTitles: Record<Step, string> = {
  * → almacén (fRef=0) | referencia (fRef=1; en ingresos viene del pallet) → resumen
  * En salidas: se eligen los ítems de cada pallet (si tiene más de uno), se pueden quitar ítems,
  * volver a agregar los excluidos y agregar más pallets del mismo artículo y almacén.
- * Si el movimiento solicita plan diario (fSolcitaPlan = '1'), cada ítem lleva el suyo y se elige desde el resumen.
+ * Si el movimiento solicita plan diario (fSolcitaPlan = '1'), se elige uno para el vale desde el resumen
+ * y se envía en cada ítem.
  */
 
 /**
@@ -120,8 +121,8 @@ export default function GenerarValePage() {
   const [addError, setAddError] = useState<string>()
   const [summaryNotice, setSummaryNotice] = useState<string>()
   const [itemPicker, setItemPicker] = useState<ItemPicker | null>(null)
-  // Ítem al que se le está eligiendo plan diario
-  const [planPicker, setPlanPicker] = useState<{ palletCode: string; item: string } | null>(null)
+  // Plan diario del vale: uno por operación, se envía en cada ítem (movimientos con fSolcitaPlan = '1')
+  const [planDiario, setPlanDiario] = useState<PlanDiario | null>(null)
   const [saveNotice, setSaveNotice] = useState<{ type: 'error' | 'info'; text: string }>()
   const [isSaving, setIsSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState<string>()
@@ -143,6 +144,7 @@ export default function GenerarValePage() {
     setGroups([])
     setSummaryNotice(undefined)
     setPrepareError(undefined)
+    setPlanDiario(null)
   }
 
   // Paso 1: verificar pallet
@@ -333,25 +335,10 @@ export default function GenerarValePage() {
     setItemPicker(null)
   }
 
-  const openPlan = (palletCode: string, item: string) => {
-    setPlanPicker({ palletCode, item })
-    goTo('plan')
-  }
-
-  // Asigna el plan al ítem y, si se pidió, a los ítems que aún no tienen uno
-  const handlePlan = (plan: PlanDiario, aplicarATodos: boolean) => {
-    if (!planPicker) return
-    setGroups((current) =>
-      current.map((g) => ({
-        ...g,
-        lineas: g.lineas.map((l) =>
-          (g.pallet.codigo === planPicker.palletCode && l.item === planPicker.item) || (aplicarATodos && !l.planDiario)
-            ? { ...l, planDiario: plan }
-            : l,
-        ),
-      })),
-    )
-    setPlanPicker(null)
+  // Un solo plan para todo el vale: al guardar se envía en cada ítem
+  const handlePlan = (plan: PlanDiario) => {
+    setPlanDiario(plan)
+    setSaveNotice(undefined)
     goBack()
   }
 
@@ -452,14 +439,14 @@ export default function GenerarValePage() {
     if (movement && palletData) openSummary(movement, palletData, selected, null)
   }
 
-  // No se puede guardar con líneas inválidas: cantidades (salidas) o plan diario pendiente
-  const lineRules = { editable: movement?.tipo === 'SAL', requierePlan: !!movement?.solicitaPlan }
+  // No se puede guardar con líneas inválidas (cantidades en salidas) ni sin plan diario si el movimiento lo pide
+  const lineRules = { editable: movement?.tipo === 'SAL' }
   const allLines = groups.flatMap((g) => g.lineas)
   const linesValid = allLines.every((l) => isValeLineValid(l, lineRules))
-  const missingPlans = lineRules.requierePlan ? allLines.filter((l) => !l.planDiario).length : 0
+  const faltaPlan = !!movement?.solicitaPlan && !planDiario
   const totals = valeTotals(allLines)
-  // Se guarda con ítems válidos y algo de peso que mover
-  const canSave = linesValid && allLines.length > 0 && totals.weight > 0
+  // Se guarda con ítems válidos, algo de peso que mover y, si corresponde, el plan diario
+  const canSave = linesValid && !faltaPlan && allLines.length > 0 && totals.weight > 0
 
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false)
   const closeConfirmSave = useCallback(() => setConfirmSaveOpen(false), [])
@@ -481,6 +468,7 @@ export default function GenerarValePage() {
           warehouseCode: valeWarehouse,
           reference,
           username: user.usuario,
+          planDiarioCode: movement.solicitaPlan ? (planDiario?.codigo ?? null) : null,
           groups,
         }),
       )
@@ -603,7 +591,11 @@ export default function GenerarValePage() {
               onRemovePallet={removePallet}
               onRemoveLine={movement.tipo === 'SAL' ? removeLine : undefined}
               onAddItems={movement.tipo === 'SAL' ? openAddItems : undefined}
-              onPickPlan={movement.solicitaPlan ? openPlan : undefined}
+              plan={
+                movement.solicitaPlan
+                  ? { valor: planDiario, pendiente: faltaPlan && linesValid, onPick: () => goTo('plan') }
+                  : undefined
+              }
             />
           </div>
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
@@ -614,11 +606,11 @@ export default function GenerarValePage() {
             ) : (
               !canSave && (
                 <p className="text-center text-sm font-medium text-destructive">
-                  {linesValid
-                    ? 'El vale no tiene peso para mover.'
-                    : missingPlans > 0 && allLines.every((l) => isValeLineValid(l, { ...lineRules, requierePlan: false }))
-                      ? `Falta elegir el plan diario de ${missingPlans === 1 ? '1 ítem' : `${missingPlans} ítems`}.`
-                      : 'Corrige los ítems marcados en rojo.'}
+                  {!linesValid
+                    ? 'Corrige los ítems marcados en rojo.'
+                    : faltaPlan
+                      ? 'Falta elegir el plan diario del vale.'
+                      : 'El vale no tiene peso para mover.'}
                 </p>
               )
             )}
@@ -803,22 +795,9 @@ export default function GenerarValePage() {
         />
       )}
 
-      {step === 'plan' && planPicker && movement && articleCode && (() => {
-        const line = groups
-          .find((g) => g.pallet.codigo === planPicker.palletCode)
-          ?.lineas.find((l) => l.item === planPicker.item)
-        if (!line) return null
-        return (
-          <PlanDiarioStep
-            palletCode={planPicker.palletCode}
-            articleCode={articleCode}
-            movement={movement}
-            line={line}
-            sinPlan={allLines.filter((l) => l !== line && !l.planDiario).length}
-            onConfirm={handlePlan}
-          />
-        )
-      })()}
+      {step === 'plan' && movement && (
+        <PlanDiarioStep movement={movement} itemCount={allLines.length} selected={planDiario} onConfirm={handlePlan} />
+      )}
     </div>
   )
 }
