@@ -34,7 +34,7 @@ function PublicRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename='/movalmacen'>
       <Routes>
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
