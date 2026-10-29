@@ -81,8 +81,6 @@ export function ValeItemCard({
   const weight = lineWeight(line)
   const errorText = errors.bultos ?? errors.kgAdicional ?? errors.peso
   const hasError = !!errorText
-  // Porcentaje del disponible que sale (para la barra)
-  const disponibleUsado = line.pesoDisponible > 0 ? Math.min(100, (weight / line.pesoDisponible) * 100) : 0
 
   return (
     <article
@@ -134,37 +132,12 @@ export function ValeItemCard({
         </Field>
 
         {editable && (
-          // Salida: lo que el pallet tiene disponible para este ítem y cuánto de eso sale
-          <div className="py-2.5">
-            <div className="rounded-lg bg-muted px-3 py-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                  <PackageCheck aria-hidden className="size-4 text-success" />
-                  Disponible para salida
-                </span>
-                <span className="font-mono text-sm font-bold whitespace-nowrap">
-                  {formatCount(line.bultosDisponibles)} bultos · {formatWeight(line.pesoDisponible)}
-                </span>
-              </div>
-              <div
-                role="meter"
-                aria-label={`Sale ${formatWeight(weight)} de ${formatWeight(line.pesoDisponible)} disponibles`}
-                aria-valuemin={0}
-                aria-valuemax={line.pesoDisponible}
-                aria-valuenow={Math.min(weight, line.pesoDisponible)}
-                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border"
-              >
-                <div
-                  className={`h-full rounded-full transition-[width] duration-200 ${errors.peso ? 'bg-destructive' : 'bg-primary'}`}
-                  style={{ width: `${disponibleUsado}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Sale {formatWeight(weight)}
-                {line.pesoDisponible > 0 && ` · quedan ${formatWeight(Math.max(0, line.pesoDisponible - weight))}`}
-              </p>
-            </div>
-          </div>
+          // Salida: lo que el pallet tiene disponible para este ítem
+          <Field Icon={PackageCheck} label="Disponible para salida" tone="success">
+            <span className="font-mono">
+              {formatCount(line.bultosDisponibles)} bultos · {formatWeight(line.pesoDisponible)}
+            </span>
+          </Field>
         )}
 
         {editable ? (

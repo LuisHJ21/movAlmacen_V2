@@ -38,7 +38,7 @@ function Dato({ Icon, label, codigo, descripcion }: { Icon: LucideIcon; label: s
   )
 }
 
-/** Cabecera general del vale: movimiento y fecha en la franja superior, luego artículo y almacén */
+/** Cabecera general del vale: movimiento y fecha en una franja suave, luego artículo y almacén */
 export function ValeHeader({ date, movement, articleCode, article, warehouse }: ValeHeaderProps) {
   const isIngreso = movement.tipo === 'ING'
   const MovementIcon = isIngreso ? ArrowDownToLine : ArrowUpFromLine
@@ -48,23 +48,21 @@ export function ValeHeader({ date, movement, articleCode, article, warehouse }: 
 
   return (
     <section aria-label="Cabecera del vale" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      {/* Movimiento + fecha y hora */}
-      <div className="flex items-center gap-3 bg-primary px-3 py-3 text-on-primary">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15">
-          <MovementIcon aria-hidden className="size-6" />
+      {/* Movimiento + fecha y hora: franja suave, para no competir con las tarjetas de ítem */}
+      <div className="flex items-center gap-3 border-b border-primary-border bg-primary-soft px-3 py-2.5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary text-on-primary">
+          <MovementIcon aria-hidden className="size-5" />
         </span>
         <div className="min-w-0 flex-1" title={`${movement.codigo} · ${movementName}`}>
-          <p className="flex items-center gap-2 text-xs font-semibold tracking-wide text-white/85 uppercase">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-primary-hover">
             {isIngreso ? 'Ingreso' : 'Salida'}
-            <span className="rounded bg-white/20 px-1.5 font-mono text-sm tracking-normal text-white normal-case">
-              {movement.codigo}
-            </span>
+            <span className="rounded bg-primary-muted px-1.5 font-mono text-xs font-bold">{movement.codigo}</span>
           </p>
-          <p className="truncate font-heading text-lg leading-tight font-bold text-white">{movementName}</p>
+          <p className="truncate font-heading text-base leading-tight font-bold">{movementName}</p>
         </div>
-        <p className="flex shrink-0 flex-col items-end text-right text-xs text-white/85">
-          <CalendarClock aria-hidden className="mb-0.5 size-4" />
-          <time dateTime={date.toISOString()} title={formatDateTime(date)} className="font-semibold text-white">
+        <p className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          <CalendarClock aria-hidden className="size-4" />
+          <time dateTime={date.toISOString()} title={formatDateTime(date)} className="font-semibold text-foreground">
             {formatShortDateTime(date)}
           </time>
         </p>
