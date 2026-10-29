@@ -24,7 +24,7 @@ axiosClient.interceptors.response.use(
     if (error.response) error.response.data = camelizeKeys(error.response.data)
     if (error.response?.status === 401 && !error.config?.url?.endsWith('/login')) {
       storageService.clearSession()
-      window.location.assign('/login')
+      window.location.assign(`${import.meta.env.BASE_URL}login`)
     }
     return Promise.reject(error)
   },
