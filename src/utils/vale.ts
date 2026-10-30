@@ -115,6 +115,7 @@ interface BuildValeRequestParams {
   username: string
   groups: ValePalletGroup[]
   observations?: string
+  recepcionado?: string
   planDiarioCode?: string | null
 }
 
@@ -129,6 +130,7 @@ export function buildValeRequest({
   username,
   groups,
   observations = '',
+  recepcionado = '',
   planDiarioCode = null,
 }: BuildValeRequestParams): ValeRequest {
   return {
@@ -137,7 +139,8 @@ export function buildValeRequest({
     referencia: reference?.nroOrden ?? '',
     fechaReg: toApiDateTime(date),
     almacen: warehouseCode ?? '',
-    observaciones: observations,
+    observaciones: observations.trim().toUpperCase(),
+    recepcionado: recepcionado.trim().toUpperCase(),
     idForm: formId,
     usuario: username,
     detalles: groups.flatMap((g) =>

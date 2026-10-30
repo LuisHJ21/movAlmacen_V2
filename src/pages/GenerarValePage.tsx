@@ -12,6 +12,7 @@ import { MovementStep } from '@/components/generar-vale/MovementStep'
 import { PlanDiarioStep } from '@/components/generar-vale/PlanDiarioStep'
 import { ReferenceStep } from '@/components/generar-vale/ReferenceStep'
 import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
+import { ValeExtrasFields } from '@/components/generar-vale/ValeExtrasFields'
 import { ValeSummary } from '@/components/generar-vale/ValeSummary'
 import { WarehouseStep } from '@/components/generar-vale/WarehouseStep'
 import { Alert } from '@/components/ui/Alert'
@@ -411,6 +412,8 @@ export default function GenerarValePage() {
   const totals = valeTotals(allLines)
   const canSave = linesValid && !faltaPlan && allLines.length > 0 && totals.weight > 0
 
+  const [recepcionado, setRecepcionado] = useState('')
+  const [observaciones, setObservaciones] = useState('')
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false)
   const closeConfirmSave = useCallback(() => setConfirmSaveOpen(false), [])
 
@@ -432,6 +435,8 @@ export default function GenerarValePage() {
           username: user.usuario,
           planDiarioCode: movement.solicitaPlan ? (planDiario?.codigo ?? null) : null,
           groups,
+          recepcionado,
+          observations: observaciones,
         }),
       )
       setSavedMessage(response?.message)
@@ -555,6 +560,13 @@ export default function GenerarValePage() {
                   ? { valor: planDiario, pendiente: faltaPlan && linesValid, onPick: () => goTo('plan') }
                   : undefined
               }
+            />
+            <ValeExtrasFields
+              recepcionado={recepcionado}
+              observaciones={observaciones}
+              onRecepcionadoChange={setRecepcionado}
+              onObservacionesChange={setObservaciones}
+              disabled={isSaving}
             />
           </div>
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
@@ -736,6 +748,18 @@ export default function GenerarValePage() {
               <dt className="text-muted-foreground">Peso total</dt>
               <dd className="font-mono font-bold">{formatWeight(totals.weight)}</dd>
             </div>
+            {recepcionado.trim() && (
+              <div className="flex justify-between gap-3 py-1.5">
+                <dt className="text-muted-foreground">Recepcionado</dt>
+                <dd className="truncate font-semibold">{recepcionado.trim()}</dd>
+              </div>
+            )}
+            {observaciones.trim() && (
+              <div className="py-1.5">
+                <dt className="text-muted-foreground">Observaciones</dt>
+                <dd className="mt-0.5 font-semibold break-words whitespace-pre-line">{observaciones.trim()}</dd>
+              </div>
+            )}
           </dl>
         )}
        

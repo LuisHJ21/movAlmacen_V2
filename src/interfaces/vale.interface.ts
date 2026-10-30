@@ -28,6 +28,7 @@ export interface ValeRequest {
   fechaReg: string
   almacen: string
   observaciones: string
+  recepcionado: string
   idForm: string
   usuario: string
   detalles: ValeDetalleRequest[]
