@@ -69,7 +69,7 @@ export function ValePalletSection({
             editable={editable}
             errors={validateValeLine(line, rules)}
             onChange={(changes) => onLineChange(index, changes)}
-            onRemove={editable && onRemoveLine ? () => onRemoveLine(line.item) : undefined}
+            onRemove={onRemoveLine ? () => onRemoveLine(line.item) : undefined}
             removeDisabledReason={lastOfInitial ? 'El pallet inicial debe tener al menos un ítem' : undefined}
           />
         ))

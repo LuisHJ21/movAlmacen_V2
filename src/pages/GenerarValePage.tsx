@@ -549,7 +549,7 @@ export default function GenerarValePage() {
               groups={groups}
               onLineChange={updateLine}
               onRemovePallet={removePallet}
-              onRemoveLine={movement.tipo === 'SAL' ? removeLine : undefined}
+              onRemoveLine={removeLine}
               plan={
                 movement.solicitaPlan
                   ? { valor: planDiario, pendiente: faltaPlan && linesValid, onPick: () => goTo('plan') }
@@ -595,7 +595,22 @@ export default function GenerarValePage() {
                 </Button>
               </div>
             )}
-            <div className={movement.tipo === 'SAL' && palletsConItems.length === 0 ? 'grid grid-cols-2 gap-2' : ''}>
+            <div
+              className={
+                (movement.tipo === 'SAL') === (palletsConItems.length === 0) ? 'grid grid-cols-2 gap-2' : ''
+              }
+            >
+              {movement.tipo === 'ING' && palletsConItems.length > 0 && (
+                <Button
+                  variant="secondary"
+                  onClick={openAddItem}
+                  disabled={isSaving}
+                  icon={<ListPlus aria-hidden className="size-5" />}
+                  className="px-3"
+                >
+                  Añadir ítem
+                </Button>
+              )}
               {movement.tipo === 'SAL' && palletsConItems.length === 0 && (
                 <Button
                   variant="secondary"
