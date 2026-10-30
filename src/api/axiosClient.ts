@@ -30,6 +30,8 @@ axiosClient.interceptors.response.use(
   },
 )
 
+export const SAVE_TIMEOUT_MS = 120_000
+
 export function getApiErrorMessage(error: unknown, fallback = 'Ocurrió un error inesperado'): string {
   if (axios.isAxiosError<ApiError>(error)) {
     if (!error.response) return 'No se pudo conectar con el servidor'

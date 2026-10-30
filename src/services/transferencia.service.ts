@@ -1,4 +1,4 @@
-import { axiosClient } from '@/api/axiosClient'
+import { SAVE_TIMEOUT_MS, axiosClient } from '@/api/axiosClient'
 import type { ApiTransferenciaResponse, TransferenciaRequest } from '@/interfaces/transferencia.interface'
 import { cleanText } from '@/utils/format'
 
@@ -9,7 +9,9 @@ export interface TransferenciaGuardada {
 
 export const transferenciaService = {
   async create(payload: TransferenciaRequest): Promise<TransferenciaGuardada> {
-    const { data } = await axiosClient.post<ApiTransferenciaResponse>('/transferencia', payload)
+    const { data } = await axiosClient.post<ApiTransferenciaResponse>('/transferencia', payload, {
+      timeout: SAVE_TIMEOUT_MS,
+    })
     if (!data?.success) throw new Error(data?.message ?? 'No fue posible registrar la transferencia')
     const [valeSalida = '', valeIngreso = ''] = (data.vales ?? []).map(cleanText)
     return { valeSalida, valeIngreso }

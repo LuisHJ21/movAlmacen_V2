@@ -1,4 +1,4 @@
-import { axiosClient } from '@/api/axiosClient'
+import { SAVE_TIMEOUT_MS, axiosClient } from '@/api/axiosClient'
 import { isAxiosError } from 'axios'
 import type {
   ApiValeDetailResponse,
@@ -13,7 +13,7 @@ import { cleanText, parseApiDateTime, toNumber } from '@/utils/format'
 
 export const valeService = {
   async create(payload: ValeRequest): Promise<ApiValeResponse> {
-    const { data } = await axiosClient.post<ApiValeResponse>('/vale', payload)
+    const { data } = await axiosClient.post<ApiValeResponse>('/vale', payload, { timeout: SAVE_TIMEOUT_MS })
     if (data && data.success === false) throw new Error(data.message ?? 'No fue posible guardar el vale')
     return data
   },
