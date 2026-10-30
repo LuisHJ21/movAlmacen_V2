@@ -41,18 +41,7 @@ const stepTitles: Record<Exclude<Step, 'ubicacion'>, string> = {
   guardado: 'Transferencia registrada',
 }
 
-/**
- * Transferencia entre almacenes: almacén origen → almacén destino (distinto del origen) → escanear pallet.
- * Al escanear se valida que:
- * - si el pallet tiene almacén asignado, sea el almacén origen (sin almacén se permite);
- * - excepción: origen sin códigos de ubicación (temporal) y pallet ya ubicado. Es el pallet que se arma en
- *   varios días: los ítems nuevos pasan por el temporal y se "transfieren" a su almacén actual manteniendo
- *   la ubicación (tipo = 1). En ese caso el destino debe ser el almacén actual del pallet.
- * Si alguna falla, se avisa y se vuelve a escanear. Si pasan, se consultan los ítems con /pallet/datatransfer.
- * Luego, si el pallet cambia de almacén (tipo = 0) y el destino tiene códigos de ubicación, se elige su
- * ubicación en el destino igual que en Asignar ubicación (código → lado → columna → nivel → profundidad).
- * Al guardar (POST /transferencia) se generan un vale de salida del origen y uno de ingreso al destino.
- */
+
 export default function TransferenciaAlmacenPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('origen')

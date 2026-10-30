@@ -159,7 +159,7 @@ export function OptionList({
                     <span className="min-w-0 flex-1">
                       {badgePlacement === 'top' && badge && <span className="mb-1 inline-block">{badge}</span>}
                       <span className="block leading-snug font-medium">{item.title}</span>
-                      {item.meta && <span className="block text-sm text-muted-foreground">{item.meta}</span>}
+                      
                     </span>
                     {isPending ? (
                       <Loader2 aria-hidden className="size-5 shrink-0 animate-spin text-primary" />
