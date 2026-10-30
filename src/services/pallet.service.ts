@@ -10,6 +10,7 @@ import type {
   PalletItem,
   TipoTransferencia,
 } from '@/interfaces/pallet.interface'
+import { ESTADO_PALLET_ANULADO } from '@/utils/estadoPallet'
 import { cleanOptional, cleanText, parseApiDateTime, toNumber } from '@/utils/format'
 
 function toPalletData(data: ApiPalletDataResponse['data']): PalletData {
@@ -59,6 +60,9 @@ export const palletService = {
     if (!data.success) throw new Error('No fue posible verificar el pallet')
 
     const p = data.data
+    if (cleanText(p.estado) === ESTADO_PALLET_ANULADO) {
+      throw new Error(`El pallet ${cleanText(p.numPallet)} está anulado y no se puede usar`)
+    }
     return {
       codigo: cleanText(p.numPallet),
       bultos: toNumber(p.numBulto),

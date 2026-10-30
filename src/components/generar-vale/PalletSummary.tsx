@@ -1,12 +1,13 @@
 import { CheckCircle2 } from 'lucide-react'
 import type { Pallet } from '@/interfaces/pallet.interface'
+import { nombreEstadoPallet } from '@/utils/estadoPallet'
 import { formatWeight } from '@/utils/format'
 
 export function PalletSummary({ pallet }: { pallet: Pallet }) {
   const rows = [
     { label: 'Bultos', value: pallet.bultos.toString() },
     { label: 'Peso', value: formatWeight(pallet.peso) },
-    { label: 'Estado', value: pallet.estado },
+    { label: 'Estado', value: nombreEstadoPallet(pallet.estado) },
     { label: 'Almacén', value: pallet.almacen },
     { label: 'Ubicación', value: pallet.ubicacion },
   ]
