@@ -333,9 +333,7 @@ export default function TransferenciaAlmacenPage() {
 
       {step === 'extras' && (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-4">
-          <p className="text-muted-foreground">
-            Completa estos datos si los necesitas; se guardan en los vales de salida e ingreso. Puedes dejarlos vacíos.
-          </p>
+          
           <ValeExtrasFields
             recepcionado={recepcionado}
             observaciones={observaciones}

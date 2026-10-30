@@ -47,7 +47,7 @@ export function ValeExtrasFields({
           value={observaciones}
           onChange={(e) => onObservacionesChange(e.target.value.toUpperCase())}
           maxLength={250}
-          rows={3}
+          rows={5}
           disabled={disabled}
           placeholder="Notas del vale"
           className="w-full resize-none rounded-lg border-2 border-border-strong bg-card px-3.5 py-2.5 text-base text-foreground transition-colors duration-150 placeholder:text-stone-400 focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:bg-muted"

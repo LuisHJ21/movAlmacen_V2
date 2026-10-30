@@ -649,9 +649,7 @@ export default function GenerarValePage() {
       {step === 'extras' && movement && (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-4">
-            <p className="text-muted-foreground">
-              Completa estos datos si los necesitas; puedes dejarlos vacíos y guardar el vale.
-            </p>
+            
             <ValeExtrasFields
               recepcionado={recepcionado}
               observaciones={observaciones}
