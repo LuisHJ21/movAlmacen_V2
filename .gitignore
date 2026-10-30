@@ -16,6 +16,9 @@ npm-debug.log*
 .env.local
 .env.*.local
 
+# Manual de usuario (se genera aparte)
+docs/manual/
+
 # Editor
 .vscode/*
 !.vscode/extensions.json
