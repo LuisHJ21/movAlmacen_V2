@@ -24,6 +24,7 @@ interface BuildTransferenciaRequestParams {
   items: PalletItem[]
   ubicacion: string
   observaciones?: string
+  recepcionado?: string
 }
 
 export function buildTransferenciaRequest({
@@ -37,6 +38,7 @@ export function buildTransferenciaRequest({
   items,
   ubicacion,
   observaciones = '',
+  recepcionado = '',
 }: BuildTransferenciaRequestParams): TransferenciaRequest {
   return {
     usuario,
@@ -57,7 +59,8 @@ export function buildTransferenciaRequest({
     fechaReg: toApiDateTime(date),
     almOrigen: origen.codigo,
     almDestino: destino.codigo,
-    observaciones,
+    observaciones: observaciones.trim().toUpperCase(),
+    recepcionado: recepcionado.trim().toUpperCase(),
     idFormI: formIdIngreso,
     idFormS: formIdSalida,
     ubicacion,

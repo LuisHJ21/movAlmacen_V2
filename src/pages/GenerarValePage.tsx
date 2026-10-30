@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ListPlus, Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, ListPlus, Plus, Save, Trash2, TriangleAlert, X } from 'lucide-react'
 import { ValeSaved } from '@/components/generar-vale/ValeSaved'
 import { useAuth } from '@/hooks/useAuth'
 import { isAxiosError } from 'axios'
@@ -55,6 +55,7 @@ type Step =
   | 'selectItems'
   | 'selectPalletItems'
   | 'plan'
+  | 'extras'
   | 'done'
 
 const stepTitles: Record<Step, string> = {
@@ -69,6 +70,7 @@ const stepTitles: Record<Step, string> = {
   selectItems: 'Elegir ítems',
   selectPalletItems: 'Añadir ítem',
   plan: 'Plan diario',
+  extras: 'Datos adicionales',
   done: 'Vale guardado',
 }
 
@@ -561,13 +563,6 @@ export default function GenerarValePage() {
                   : undefined
               }
             />
-            <ValeExtrasFields
-              recepcionado={recepcionado}
-              observaciones={observaciones}
-              onRecepcionadoChange={setRecepcionado}
-              onObservacionesChange={setObservaciones}
-              disabled={isSaving}
-            />
           </div>
           <div className="space-y-2 border-t border-border bg-card px-4 py-3">
             {saveNotice ? (
@@ -636,15 +631,50 @@ export default function GenerarValePage() {
               )}
               <Button
                 fullWidth
-                onClick={() => setConfirmSaveOpen(true)}
+                onClick={() => {
+                  setSaveNotice(undefined)
+                  goTo('extras')
+                }}
                 disabled={!canSave}
-                isLoading={isSaving}
-                icon={<Save aria-hidden className="size-5" />}
+                icon={<ArrowRight aria-hidden className="size-5" />}
                 className="px-3"
               >
-                {isSaving ? 'Guardando…' : 'Guardar'}
+                Continuar
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {step === 'extras' && movement && (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-4">
+            <p className="text-muted-foreground">
+              Completa estos datos si los necesitas; puedes dejarlos vacíos y guardar el vale.
+            </p>
+            <ValeExtrasFields
+              recepcionado={recepcionado}
+              observaciones={observaciones}
+              onRecepcionadoChange={setRecepcionado}
+              onObservacionesChange={setObservaciones}
+              disabled={isSaving}
+            />
+          </div>
+          <div className="space-y-2 border-t border-border bg-card px-4 py-3">
+            {saveNotice && (
+              <Alert type={saveNotice.type} onClose={() => setSaveNotice(undefined)}>
+                {saveNotice.text}
+              </Alert>
+            )}
+            <Button
+              fullWidth
+              onClick={() => setConfirmSaveOpen(true)}
+              disabled={!canSave}
+              isLoading={isSaving}
+              icon={<Save aria-hidden className="size-5" />}
+            >
+              {isSaving ? 'Guardando…' : 'Guardar'}
+            </Button>
           </div>
         </div>
       )}

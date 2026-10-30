@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isAxiosError } from 'axios'
-import { ArrowRightLeft, CircleAlert, X } from 'lucide-react'
+import { ArrowRight, ArrowRightLeft, CircleAlert, X } from 'lucide-react'
 import { getApiErrorMessage } from '@/api/axiosClient'
 import { SelectorUbicacion } from '@/components/asignar-ubicacion/SelectorUbicacion'
 import { ScanPalletStep } from '@/components/generar-vale/ScanPalletStep'
+import { ValeExtrasFields } from '@/components/generar-vale/ValeExtrasFields'
 import { PalletTransferCard } from '@/components/transferencia-almacen/PalletTransferCard'
 import { RutaTransferencia } from '@/components/transferencia-almacen/RutaTransferencia'
 import { TransferenciaGuardada } from '@/components/transferencia-almacen/TransferenciaGuardada'
@@ -25,7 +26,7 @@ import { formatCount, formatQuantity, formatWeight, toSentenceCase } from '@/uti
 import { buildTransferenciaRequest, tipoTransferencia } from '@/utils/transferencia'
 import { generateFormId } from '@/utils/vale'
 
-type Step = 'origen' | 'destino' | 'scan' | 'ubicacion' | 'resumen' | 'guardado'
+type Step = 'origen' | 'destino' | 'scan' | 'ubicacion' | 'resumen' | 'extras' | 'guardado'
 
 interface AlertaPallet {
   titulo: string
@@ -38,6 +39,7 @@ const stepTitles: Record<Exclude<Step, 'ubicacion'>, string> = {
   destino: 'Almacén destino',
   scan: 'Escanear pallet',
   resumen: 'Resumen',
+  extras: 'Datos adicionales',
   guardado: 'Transferencia registrada',
 }
 
@@ -57,6 +59,8 @@ export default function TransferenciaAlmacenPage() {
 
   const [cargadaEn, setCargadaEn] = useState(() => new Date())
   const [formIds, setFormIds] = useState({ salida: '', ingreso: '' })
+  const [recepcionado, setRecepcionado] = useState('')
+  const [observaciones, setObservaciones] = useState('')
   const [confirmarGuardar, setConfirmarGuardar] = useState(false)
   const cerrarConfirmar = useCallback(() => setConfirmarGuardar(false), [])
   const [isSaving, setIsSaving] = useState(false)
@@ -194,6 +198,8 @@ export default function TransferenciaAlmacenPage() {
           destino,
           items,
           ubicacion: requiereUbicacion ? selector.codigo : tipo === '1' ? (pallet.ubicacion ?? '') : '',
+          recepcionado,
+          observaciones,
         }),
       )
       setGuardada(result)
@@ -210,6 +216,7 @@ export default function TransferenciaAlmacenPage() {
   }
 
   const goBack = () => {
+    if (step === 'extras') return setStep('resumen')
     if (step === 'destino') return setStep('origen')
     if (step === 'scan') {
       setVerifyError(undefined)
@@ -224,7 +231,7 @@ export default function TransferenciaAlmacenPage() {
   const stepNumber =
     step === 'ubicacion'
       ? 4 + selector.paso
-      : { origen: 1, destino: 2, scan: 3, resumen: requiereUbicacion ? 9 : 4, guardado: requiereUbicacion ? 10 : 5 }[step]
+      : { origen: 1, destino: 2, scan: 3, resumen: requiereUbicacion ? 9 : 4, extras: requiereUbicacion ? 10 : 5, guardado: requiereUbicacion ? 11 : 6 }[step]
   const stepTitle = step === 'ubicacion' ? `Ubicación destino · ${selector.parte?.titulo ?? ''}` : stepTitles[step]
 
   return (
@@ -309,6 +316,37 @@ export default function TransferenciaAlmacenPage() {
       )}
 
       {step === 'resumen' && (
+        <div className="border-t border-border bg-card px-4 py-3">
+          <Button
+            fullWidth
+            disabled={!puedeGuardar}
+            icon={<ArrowRight aria-hidden className="size-5" />}
+            onClick={() => {
+              setSaveError(undefined)
+              setStep('extras')
+            }}
+          >
+            Continuar
+          </Button>
+        </div>
+      )}
+
+      {step === 'extras' && (
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-4">
+          <p className="text-muted-foreground">
+            Completa estos datos si los necesitas; se guardan en los vales de salida e ingreso. Puedes dejarlos vacíos.
+          </p>
+          <ValeExtrasFields
+            recepcionado={recepcionado}
+            observaciones={observaciones}
+            onRecepcionadoChange={setRecepcionado}
+            onObservacionesChange={setObservaciones}
+            disabled={isSaving}
+          />
+        </div>
+      )}
+
+      {step === 'extras' && (
         <div className="space-y-2 border-t border-border bg-card px-4 py-3">
           {saveError && <Alert type="error">{saveError}</Alert>}
           <Button
@@ -369,6 +407,18 @@ export default function TransferenciaAlmacenPage() {
                 {formatCount(totalBultos)} bultos · {formatWeight(totalPeso)}
               </dd>
             </div>
+            {recepcionado.trim() && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Recepcionado</dt>
+                <dd className="truncate font-semibold">{recepcionado.trim()}</dd>
+              </div>
+            )}
+            {observaciones.trim() && (
+              <div>
+                <dt className="text-muted-foreground">Observaciones</dt>
+                <dd className="mt-0.5 font-semibold break-words whitespace-pre-line">{observaciones.trim()}</dd>
+              </div>
+            )}
             <p className="pt-1 text-muted-foreground">Se generarán un vale de salida y uno de ingreso.</p>
           </dl>
         )}

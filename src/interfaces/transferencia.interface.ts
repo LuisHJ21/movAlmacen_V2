@@ -6,6 +6,7 @@ export interface TransferenciaRequest {
   almOrigen: string
   almDestino: string
   observaciones: string
+  recepcionado: string
   idFormI: string
   idFormS: string
   ubicacion: string

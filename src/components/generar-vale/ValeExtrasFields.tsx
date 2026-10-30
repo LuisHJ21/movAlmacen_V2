@@ -8,6 +8,7 @@ interface ValeExtrasFieldsProps {
   onRecepcionadoChange: (value: string) => void
   onObservacionesChange: (value: string) => void
   disabled?: boolean
+  className?: string
 }
 
 export function ValeExtrasFields({
@@ -16,11 +17,12 @@ export function ValeExtrasFields({
   onRecepcionadoChange,
   onObservacionesChange,
   disabled = false,
+  className = '',
 }: ValeExtrasFieldsProps) {
   const obsId = useId()
 
   return (
-    <section aria-label="Datos adicionales del vale" className="mt-4 space-y-3 rounded-xl border border-border bg-card p-4">
+    <section aria-label="Datos adicionales del vale" className={`space-y-3 rounded-xl border border-border bg-card p-4 ${className}`}>
       <p className="text-xs font-semibold tracking-[0.15em] text-muted-foreground uppercase">
         Datos adicionales <span className="font-normal tracking-normal normal-case">(opcional)</span>
       </p>
