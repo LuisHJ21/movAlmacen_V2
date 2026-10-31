@@ -101,7 +101,7 @@ export const palletService = {
       codigo: cleanText(p.numPallet),
       bultos: toNumber(p.numBulto),
       peso: toNumber(p.peso),
-      activo: cleanText(p.flagEstado) !== '0',
+      activo: cleanText(p.flagEstado) !== '0' && cleanText(p.flagEstado) !== '4',
       usuarioRegistro: cleanText(p.codUsuario),
       fechaRegistro: parseApiDateTime(cleanText(p.fechRegistro)),
       observacion: cleanText(p.observacion),
